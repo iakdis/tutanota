@@ -2,7 +2,7 @@ import type { EntityRestInterface } from "./EntityRestClient"
 import { EntityRestClient, EntityRestClientSetupOptions } from "./EntityRestClient"
 import { resolveTypeReference } from "../../common/EntityFunctions"
 import { OperationType } from "../../common/TutanotaConstants"
-import { assertNotNull, difference, getFirstOrThrow, groupBy, isSameTypeRef, lastThrow, TypeRef } from "@tutao/tutanota-utils"
+import { assertNotNull, difference, getFirstOrThrow, groupBy, isSameTypeRef, lastThrow, TypeRef, UsingVersion } from "@tutao/tutanota-utils"
 import { containsEventOfType, getEventOfType } from "../../common/utils/Utils"
 import type { EntityUpdate, User } from "../../entities/sys/TypeRefs.js"
 import {
@@ -245,7 +245,7 @@ export class DefaultEntityRestCache implements EntityRestCache {
 		typeRef: TypeRef<T>,
 		listId: Id | null,
 		elementIds: Array<Id>,
-		providedOwnerEncSessionKeys?: Map<Id, Uint8Array>,
+		providedOwnerEncSessionKeys?: Map<Id, UsingVersion<Uint8Array>>,
 	): Promise<Array<T>> {
 		if (isIgnoredType(typeRef)) {
 			return this.entityRestClient.loadMultiple(typeRef, listId, elementIds, providedOwnerEncSessionKeys)
@@ -324,7 +324,7 @@ export class DefaultEntityRestCache implements EntityRestCache {
 		typeRef: TypeRef<T>,
 		listId: Id | null,
 		ids: Array<Id>,
-		providedOwnerEncSessionKeys?: Map<Id, Uint8Array>,
+		providedOwnerEncSessionKeys?: Map<Id, UsingVersion<Uint8Array>>,
 	): Promise<Array<T>> {
 		const entitiesInCache: T[] = []
 		const idsToLoad: Id[] = []

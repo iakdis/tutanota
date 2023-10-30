@@ -9,6 +9,7 @@ export {
 	Aes128Key,
 	Aes256Key,
 	aes256EncryptSearchIndexEntry,
+	VersionedKey,
 } from "./encryption/Aes.js"
 export {
 	EccPrivateKey,

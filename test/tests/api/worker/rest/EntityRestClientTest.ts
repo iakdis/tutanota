@@ -536,7 +536,7 @@ o.spec("EntityRestClient", async function () {
 				{ times: 1 },
 			).thenResolve(JSON.stringify({ generatedId: resultId }))
 
-			const ownerKey = [1, 2, 3]
+			const ownerKey = { key: [1, 2, 3], version: 1 }
 			const sessionKey = [3, 2, 1]
 			when(cryptoFacadeMock.setNewOwnerEncSessionKey(typeModel, anything(), ownerKey)).thenReturn(sessionKey)
 

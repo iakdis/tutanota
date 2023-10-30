@@ -18,6 +18,7 @@ export type AccountingInfo = {
 	_modified: Date;
 	_ownerEncSessionKey: null | Uint8Array;
 	_ownerGroup: null | Id;
+	_ownerKeyVersion: null | NumberString;
 	_permissions: Id;
 	invoiceAddress: string;
 	invoiceCountry: null | string;
@@ -156,6 +157,7 @@ export type AuditLogEntry = {
 	_id: IdTuple;
 	_ownerEncSessionKey: null | Uint8Array;
 	_ownerGroup: null | Id;
+	_ownerKeyVersion: null | NumberString;
 	_permissions: Id;
 	action: string;
 	actorIpAddress: null | string;
@@ -443,6 +445,7 @@ export type BucketKey = {
 	_id: Id;
 	groupEncBucketKey: null | Uint8Array;
 	pubEncBucketKey: null | Uint8Array;
+	pubKeyVersion: null | NumberString;
 
 	bucketEncSessionKeys: InstanceSessionKey[];
 	keyGroup:  null | Id;
@@ -461,9 +464,11 @@ export type BucketPermission = {
 	_ownerGroup: null | Id;
 	_permissions: Id;
 	ownerEncBucketKey: null | Uint8Array;
+	ownerKeyVersion: null | NumberString;
 	pubEncBucketKey: null | Uint8Array;
 	pubKeyVersion: null | NumberString;
 	symEncBucketKey: null | Uint8Array;
+	symKeyVersion: null | NumberString;
 	type: NumberString;
 
 	group: Id;
@@ -938,6 +943,7 @@ export type CustomerServerProperties = {
 	_id: Id;
 	_ownerEncSessionKey: null | Uint8Array;
 	_ownerGroup: null | Id;
+	_ownerKeyVersion: null | NumberString;
 	_permissions: Id;
 	requirePasswordUpdateAfterReset: boolean;
 	saveEncryptedIpAddressInSession: boolean;
@@ -1201,6 +1207,7 @@ export type GiftCard = {
 	_id: IdTuple;
 	_ownerEncSessionKey: null | Uint8Array;
 	_ownerGroup: null | Id;
+	_ownerKeyVersion: null | NumberString;
 	_permissions: Id;
 	message: string;
 	migrated: boolean;
@@ -1343,6 +1350,7 @@ export type Group = {
 	administratedGroups:  null | AdministratedGroupsRef;
 	archives: ArchiveType[];
 	customer:  null | Id;
+	formerGroupKeys:  null | GroupKeysRef;
 	groupInfo: IdTuple;
 	invitations: Id;
 	keys: KeyPair[];
@@ -1365,6 +1373,7 @@ export type GroupInfo = {
 	_listEncSessionKey: null | Uint8Array;
 	_ownerEncSessionKey: null | Uint8Array;
 	_ownerGroup: null | Id;
+	_ownerKeyVersion: null | NumberString;
 	_permissions: Id;
 	created: Date;
 	deleted: null | Date;
@@ -1375,6 +1384,41 @@ export type GroupInfo = {
 	group: Id;
 	localAdmin:  null | Id;
 	mailAddressAliases: MailAddressAlias[];
+}
+export const GroupKeyTypeRef: TypeRef<GroupKey> = new TypeRef("sys", "GroupKey")
+
+export function createGroupKey(values?: Partial<GroupKey>): GroupKey {
+	return Object.assign(create(typeModels.GroupKey, GroupKeyTypeRef), values)
+}
+
+export type GroupKey = {
+	_type: TypeRef<GroupKey>;
+
+	_format: NumberString;
+	_id: IdTuple;
+	_ownerGroup: null | Id;
+	_permissions: Id;
+	adminGroupEncGKey: null | Uint8Array;
+	adminGroupKeyVersion: NumberString;
+	groupKeyHash: Uint8Array;
+	ownerEncGKey: Uint8Array;
+	ownerKeyVersion: NumberString;
+	pubAdminGroupEncGKey: null | Uint8Array;
+
+	keyPair: KeyPair;
+}
+export const GroupKeysRefTypeRef: TypeRef<GroupKeysRef> = new TypeRef("sys", "GroupKeysRef")
+
+export function createGroupKeysRef(values?: Partial<GroupKeysRef>): GroupKeysRef {
+	return Object.assign(create(typeModels.GroupKeysRef, GroupKeysRefTypeRef), values)
+}
+
+export type GroupKeysRef = {
+	_type: TypeRef<GroupKeysRef>;
+
+	_id: Id;
+
+	list: Id;
 }
 export const GroupMemberTypeRef: TypeRef<GroupMember> = new TypeRef("sys", "GroupMember")
 
@@ -1407,8 +1451,10 @@ export type GroupMembership = {
 	_id: Id;
 	admin: boolean;
 	capability: null | NumberString;
+	groupKeyVersion: NumberString;
 	groupType: null | NumberString;
 	symEncGKey: Uint8Array;
+	symKeyVersion: NumberString;
 
 	group: Id;
 	groupInfo: IdTuple;
@@ -1445,6 +1491,7 @@ export type InstanceSessionKey = {
 	instanceId: Id;
 	instanceList: Id;
 	symEncSessionKey: Uint8Array;
+	symKeyVersion: NumberString;
 
 	typeInfo: TypeInfo;
 }
@@ -1462,6 +1509,7 @@ export type Invoice = {
 	_id: Id;
 	_ownerEncSessionKey: null | Uint8Array;
 	_ownerGroup: null | Id;
+	_ownerKeyVersion: null | NumberString;
 	_permissions: Id;
 	address: string;
 	adminUser: null | string;
@@ -1715,6 +1763,7 @@ export type MissedNotification = {
 	_id: Id;
 	_ownerEncSessionKey: null | Uint8Array;
 	_ownerGroup: null | Id;
+	_ownerKeyVersion: null | NumberString;
 	_permissions: Id;
 	changeTime: Date;
 	confirmationId: Id;
@@ -1805,6 +1854,7 @@ export type OrderProcessingAgreement = {
 	_id: IdTuple;
 	_ownerEncSessionKey: null | Uint8Array;
 	_ownerGroup: null | Id;
+	_ownerKeyVersion: null | NumberString;
 	_permissions: Id;
 	customerAddress: string;
 	signatureDate: Date;
@@ -1956,6 +2006,7 @@ export type Permission = {
 	_id: IdTuple;
 	_ownerEncSessionKey: null | Uint8Array;
 	_ownerGroup: null | Id;
+	_ownerKeyVersion: null | NumberString;
 	_permissions: Id;
 	bucketEncSessionKey: null | Uint8Array;
 	listElementApplication: null | string;
@@ -2143,26 +2194,26 @@ export type PriceServiceReturn = {
 	currentPriceThisPeriod:  null | PriceData;
 	futurePriceNextPeriod:  null | PriceData;
 }
-export const PublicKeyDataTypeRef: TypeRef<PublicKeyData> = new TypeRef("sys", "PublicKeyData")
+export const PublicKeyGetInTypeRef: TypeRef<PublicKeyGetIn> = new TypeRef("sys", "PublicKeyGetIn")
 
-export function createPublicKeyData(values?: Partial<PublicKeyData>): PublicKeyData {
-	return Object.assign(create(typeModels.PublicKeyData, PublicKeyDataTypeRef), values)
+export function createPublicKeyGetIn(values?: Partial<PublicKeyGetIn>): PublicKeyGetIn {
+	return Object.assign(create(typeModels.PublicKeyGetIn, PublicKeyGetInTypeRef), values)
 }
 
-export type PublicKeyData = {
-	_type: TypeRef<PublicKeyData>;
+export type PublicKeyGetIn = {
+	_type: TypeRef<PublicKeyGetIn>;
 
 	_format: NumberString;
 	mailAddress: string;
 }
-export const PublicKeyReturnTypeRef: TypeRef<PublicKeyReturn> = new TypeRef("sys", "PublicKeyReturn")
+export const PublicKeyGetOutTypeRef: TypeRef<PublicKeyGetOut> = new TypeRef("sys", "PublicKeyGetOut")
 
-export function createPublicKeyReturn(values?: Partial<PublicKeyReturn>): PublicKeyReturn {
-	return Object.assign(create(typeModels.PublicKeyReturn, PublicKeyReturnTypeRef), values)
+export function createPublicKeyGetOut(values?: Partial<PublicKeyGetOut>): PublicKeyGetOut {
+	return Object.assign(create(typeModels.PublicKeyGetOut, PublicKeyGetOutTypeRef), values)
 }
 
-export type PublicKeyReturn = {
-	_type: TypeRef<PublicKeyReturn>;
+export type PublicKeyGetOut = {
+	_type: TypeRef<PublicKeyGetOut>;
 
 	_format: NumberString;
 	pubEccKey: null | Uint8Array;
@@ -2186,6 +2237,7 @@ export type PushIdentifier = {
 	_owner: Id;
 	_ownerEncSessionKey: null | Uint8Array;
 	_ownerGroup: null | Id;
+	_ownerKeyVersion: null | NumberString;
 	_permissions: Id;
 	disabled: boolean;
 	displayName: string;
@@ -2222,6 +2274,7 @@ export type ReceivedGroupInvitation = {
 	_id: IdTuple;
 	_ownerEncSessionKey: null | Uint8Array;
 	_ownerGroup: null | Id;
+	_ownerKeyVersion: null | NumberString;
 	_permissions: Id;
 	capability: NumberString;
 	groupType: null | NumberString;
@@ -2653,6 +2706,7 @@ export type Session = {
 	_id: IdTuple;
 	_ownerEncSessionKey: null | Uint8Array;
 	_ownerGroup: null | Id;
+	_ownerKeyVersion: null | NumberString;
 	_permissions: Id;
 	accessKey: null | Uint8Array;
 	clientIdentifier: string;
@@ -2866,6 +2920,7 @@ export type UpdatePermissionKeyData = {
 
 	_format: NumberString;
 	ownerEncSessionKey: null | Uint8Array;
+	ownerKeyVersion: null | NumberString;
 	symEncSessionKey: null | Uint8Array;
 
 	bucketPermission: IdTuple;
@@ -2974,6 +3029,7 @@ export type UserAlarmInfo = {
 	_id: IdTuple;
 	_ownerEncSessionKey: null | Uint8Array;
 	_ownerGroup: null | Id;
+	_ownerKeyVersion: null | NumberString;
 	_permissions: Id;
 
 	alarmInfo: AlarmInfo;
@@ -3309,6 +3365,7 @@ export type WhitelabelChild = {
 	_id: IdTuple;
 	_ownerEncSessionKey: null | Uint8Array;
 	_ownerGroup: null | Id;
+	_ownerKeyVersion: null | NumberString;
 	_permissions: Id;
 	comment: string;
 	createdDate: Date;

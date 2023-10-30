@@ -1,9 +1,8 @@
 import { GroupType } from "../../common/TutanotaConstants"
-import { decryptKey } from "@tutao/tutanota-crypto"
-import { assertNotNull, getFromMap } from "@tutao/tutanota-utils"
+import { Aes128Key, decryptKey, VersionedKey } from "@tutao/tutanota-crypto"
+import { assertNotNull, getFromMap, neverNull, UsingVersion } from "@tutao/tutanota-utils"
 import { ProgrammingError } from "../../common/error/ProgrammingError"
 import { createWebsocketLeaderStatus, GroupMembership, User, WebsocketLeaderStatus } from "../../entities/sys/TypeRefs"
-import { Aes128Key } from "@tutao/tutanota-crypto"
 import { LoginIncompleteError } from "../../common/error/LoginIncompleteError"
 
 export interface AuthDataProvider {
@@ -20,7 +19,7 @@ export class UserFacade implements AuthDataProvider {
 	private user: User | null = null
 	private accessToken: string | null = null
 	/** A cache for decrypted keys of each group. Encrypted keys are stored on membership.symEncGKey. */
-	private groupKeys: Map<Id, Aes128Key> = new Map()
+	private groupKeys: Map<Id, VersionedKey> = new Map()
 	private leaderStatus!: WebsocketLeaderStatus
 
 	constructor() {
@@ -49,7 +48,10 @@ export class UserFacade implements AuthDataProvider {
 		if (this.user == null) {
 			throw new ProgrammingError("Invalid state: no user")
 		}
-		this.groupKeys.set(this.getUserGroupId(), decryptKey(userPassphraseKey, this.user.userGroup.symEncGKey))
+		this.groupKeys.set(this.getUserGroupId(), {
+			object: decryptKey(userPassphraseKey, this.user.userGroup.symEncGKey),
+			version: parseInt(neverNull(this.user.userGroup.symKeyVersion)),
+		})
 	}
 
 	updateUser(user: User) {
@@ -84,10 +86,11 @@ export class UserFacade implements AuthDataProvider {
 		return groups
 	}
 
-	getUserGroupKey(): Aes128Key {
+	getUserGroupKey(version: number): VersionedKey {
 		// the userGroupKey is always written after the login to this.groupKeys
 		//if the user has only logged in offline this has not happened
-		const userGroupKey = this.groupKeys.get(this.getUserGroupId())
+		let userGroupId = this.getUserGroupId()
+		const userGroupKey = this.groupKeys.get(userGroupId)
 		if (userGroupKey == null) {
 			if (this.isPartiallyLoggedIn()) {
 				throw new LoginIncompleteError("userGroupKey not available")
@@ -95,13 +98,36 @@ export class UserFacade implements AuthDataProvider {
 				throw new ProgrammingError("Invalid state: userGroupKey is not available")
 			}
 		}
+
+		// cache miss due to different version
+		if (userGroupKey.version !== version) {
+			const key = this.getGroupKey({ version, object: userGroupId })
+
+			// latest version updated in the meantime, update cache
+			// FIXME TODO BROKEN ::: :#:#:#: :#: ::DOHUIASRDHGIJLASREHIUOASRHUIOEAS(&UGAWRE(&UPGHASED - DO WE DO THIS, OR DO WE DO A MAP OF MAPS WITH IT
+			if (version > userGroupKey.version) {
+				this.groupKeys.set(userGroupId, key)
+			}
+
+			return key
+		}
+
 		return userGroupKey
 	}
 
-	getGroupKey(groupId: Id): Aes128Key {
-		return getFromMap(this.groupKeys, groupId, () => {
-			return decryptKey(this.getUserGroupKey(), this.getMembership(groupId).symEncGKey)
+	getGroupKey(groupId: UsingVersion<Id>): VersionedKey {
+		return getFromMap(this.groupKeys, groupId.object, () => {
+			// FIXME: IS THIS CORRECT?
+			const membership = this.getMembership(groupId.object)
+			const userGroupKey = this.getUserGroupKey(parseInt(membership.groupKeyVersion))
+			const decrypted = decryptKey(userGroupKey.object, membership.symEncGKey)
+
+			return { object: decrypted, version: parseInt(membership.symKeyVersion) }
 		})
+	}
+
+	getLatestGroupKey(groupId: Id): VersionedKey {
+		throw new Error("unimplemented")
 	}
 
 	getMembership(groupId: Id): GroupMembership {

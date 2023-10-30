@@ -92,7 +92,7 @@ export const typeModels = {
             }
         },
         "app": "monitor",
-        "version": "22"
+        "version": "23"
     },
     "CounterValue": {
         "name": "CounterValue",
@@ -133,7 +133,7 @@ export const typeModels = {
         },
         "associations": {},
         "app": "monitor",
-        "version": "22"
+        "version": "23"
     },
     "ReadCounterData": {
         "name": "ReadCounterData",
@@ -183,7 +183,7 @@ export const typeModels = {
         },
         "associations": {},
         "app": "monitor",
-        "version": "22"
+        "version": "23"
     },
     "ReadCounterReturn": {
         "name": "ReadCounterReturn",
@@ -226,7 +226,7 @@ export const typeModels = {
             }
         },
         "app": "monitor",
-        "version": "22"
+        "version": "23"
     },
     "WriteCounterData": {
         "name": "WriteCounterData",
@@ -285,6 +285,6 @@ export const typeModels = {
         },
         "associations": {},
         "app": "monitor",
-        "version": "22"
+        "version": "23"
     }
 }

@@ -10,15 +10,16 @@ import {
 	TypeRef,
 	uint8ArrayToBase64,
 	uint8ArrayToHex,
+	UsingVersion,
 } from "@tutao/tutanota-utils"
 import { BucketPermissionType, GroupType, PermissionType } from "../../common/TutanotaConstants"
 import { HttpMethod, resolveTypeReference } from "../../common/EntityFunctions"
-import type { BucketKey, BucketPermission, GroupMembership, InstanceSessionKey, Permission, PublicKeyReturn } from "../../entities/sys/TypeRefs.js"
+import type { BucketKey, BucketPermission, GroupMembership, InstanceSessionKey, Permission, PublicKeyGetOut } from "../../entities/sys/TypeRefs.js"
 import {
 	BucketKeyTypeRef,
 	BucketPermissionTypeRef,
 	createInstanceSessionKey,
-	createPublicKeyData,
+	createPublicKeyGetIn,
 	createUpdatePermissionKeyData,
 	GroupInfoTypeRef,
 	GroupTypeRef,
@@ -49,6 +50,8 @@ import {
 	decryptKey,
 	ENABLE_MAC,
 	encryptKey,
+	generateEccKeyPair,
+	hexToEccPublicKey,
 	hexToKyberPublicKey,
 	hexToRsaPublicKey,
 	IV_BYTE_LENGTH,
@@ -58,8 +61,7 @@ import {
 	RsaKeyPair,
 	RsaPublicKey,
 	uint8ArrayToBitArray,
-	generateEccKeyPair,
-	hexToEccPublicKey,
+	VersionedKey,
 } from "@tutao/tutanota-crypto"
 import { RecipientNotResolvedError } from "../../common/error/RecipientNotResolvedError"
 import type { RsaImplementation } from "./RsaImplementation"
@@ -87,17 +89,22 @@ export function encryptString(sk: Aes128Key, value: string): Uint8Array {
 export class CryptoFacade {
 	async applyMigrations<T>(typeRef: TypeRef<T>, data: any): Promise<T> {
 		if (isSameTypeRef(typeRef, GroupInfoTypeRef) && data._ownerGroup == null) {
-			let customerGroupMembership = this.userFacade.getLoggedInUser().memberships.find((g: GroupMembership) => g.groupType === GroupType.Customer) as any
-			let customerGroupKey = this.userFacade.getGroupKey(customerGroupMembership.group)
-			return this.entityClient.loadAll(PermissionTypeRef, data._id[0]).then((listPermissions: Permission[]) => {
-				let customerGroupPermission = listPermissions.find((p) => p.group === customerGroupMembership.group)
-				if (!customerGroupPermission) throw new SessionKeyNotFoundError("Permission not found, could not apply OwnerGroup migration")
-				let listKey = decryptKey(customerGroupKey, (customerGroupPermission as any).symEncSessionKey)
-				let groupInfoSk = decryptKey(listKey, base64ToUint8Array(data._listEncSessionKey))
-				data._ownerGroup = customerGroupMembership.getGroup()
-				data._ownerEncSessionKey = uint8ArrayToBase64(encryptKey(customerGroupKey, groupInfoSk))
-				return data
-			})
+			const customerGroupMembership = this.userFacade
+				.getLoggedInUser()
+				.memberships.find((g: GroupMembership) => g.groupType === GroupType.Customer) as any
+
+			const customerGroupKey = this.userFacade.getGroupKey(customerGroupMembership.group, data._ownerKeyVersion)
+			const listPermissions = await this.entityClient.loadAll(PermissionTypeRef, data._id[0])
+
+			const customerGroupPermission = listPermissions.find((p) => p.group === customerGroupMembership.group)
+			if (!customerGroupPermission) {
+				throw new SessionKeyNotFoundError("Permission not found, could not apply OwnerGroup migration")
+			}
+			const listKey = decryptKey(customerGroupKey, (customerGroupPermission as any).symEncSessionKey)
+			const groupInfoSk = decryptKey(listKey, base64ToUint8Array(data._listEncSessionKey))
+			data._ownerGroup = customerGroupMembership.getGroup()
+			data._ownerEncSessionKey = uint8ArrayToBase64(encryptKey(customerGroupKey, groupInfoSk))
+			return data
 		} else if (isSameTypeRef(typeRef, TutanotaPropertiesTypeRef) && data._ownerEncSessionKey == null) {
 			// EncryptTutanotaPropertiesService could be removed and replaced with an Migration that writes the key
 			let migrationData = createEncryptTutanotaPropertiesData()
@@ -184,9 +191,9 @@ export class CryptoFacade {
 		return decryptKey(ownerKey, key)
 	}
 
-	decryptSessionKey(instance: Record<string, any>, ownerEncSessionKey: Uint8Array): Aes128Key {
-		const gk = this.userFacade.getGroupKey(instance._ownerGroup)
-		return decryptKey(gk, ownerEncSessionKey)
+	decryptSessionKey(instance: Record<string, any>, ownerEncSessionKey: UsingVersion<Uint8Array>): Aes128Key {
+		const gk = this.userFacade.getGroupKey(instance._ownerGroup, ownerEncSessionKey.version)
+		return decryptKey(gk, ownerEncSessionKey.object)
 	}
 
 	/**
@@ -204,19 +211,18 @@ export class CryptoFacade {
 				if (!typeModel.encrypted) {
 					return null
 				}
-				const elementId = this.getElementIdFromInstance(instance)
 				if (instance.bucketKey) {
 					// if we have a bucket key, then we need to cache the session keys stored in the bucket key for details, files, etc.
 					// we need to do this BEFORE we check the owner enc session key
 					const bucketKey = await this.convertBucketKeyToInstanceIfNecessary(instance.bucketKey)
 					return this.resolveWithBucketKey(bucketKey, instance, typeModel)
 				} else if (instance._ownerEncSessionKey && this.userFacade.isFullyLoggedIn() && this.userFacade.hasGroup(instance._ownerGroup)) {
-					const gk = this.userFacade.getGroupKey(instance._ownerGroup)
+					const gk = this.userFacade.getGroupKey(instance._ownerGroup, parseInt(instance._ownerKeyVersion))
 					return this.resolveSessionKeyWithOwnerKey(instance, gk)
 				} else if (instance.ownerEncSessionKey) {
 					// TODO this is a service instance: Rename all ownerEncSessionKey attributes to _ownerEncSessionKey	 and add _ownerGroupId (set ownerEncSessionKey here automatically after resolving the group)
 					// add to payment data service
-					const gk = this.userFacade.getGroupKey(this.userFacade.getGroupId(GroupType.Mail))
+					const gk = this.userFacade.getGroupKey(this.userFacade.getGroupId(GroupType.Mail), parseInt(instance.ownerKeyVersion))
 					return this.resolveSessionKeyWithOwnerKey(instance, gk)
 				} else {
 					// See PermissionType jsdoc for more info on permissions
@@ -252,10 +258,6 @@ export class CryptoFacade {
 		return typeof elementOrLiteral._type === "undefined"
 	}
 
-	private isTuple(element: unknown): element is IdTuple {
-		return element != null && Array.isArray(element)
-	}
-
 	private trySymmetricPermission(listPermissions: Permission[]) {
 		const symmetricPermission: Permission | null =
 			listPermissions.find(
@@ -266,7 +268,7 @@ export class CryptoFacade {
 			) ?? null
 
 		if (symmetricPermission) {
-			const gk = this.userFacade.getGroupKey(assertNotNull(symmetricPermission._ownerGroup))
+			const gk = this.userFacade.getGroupKey(assertNotNull(symmetricPermission._ownerGroup), parseInt(neverNull(symmetricPermission._ownerKeyVersion)))
 			return decryptKey(gk, assertNotNull(symmetricPermission._ownerEncSessionKey))
 		}
 	}
@@ -277,7 +279,13 @@ export class CryptoFacade {
 		let decBucketKey: Aes128Key
 		if (bucketKey.keyGroup && bucketKey.pubEncBucketKey) {
 			// bucket key is encrypted with public key for internal recipient
-			decBucketKey = await this.decryptBucketKeyWithKeyPairOfGroup(bucketKey.keyGroup, bucketKey.pubEncBucketKey)
+			decBucketKey = await this.decryptBucketKeyWithKeyPairOfGroup(
+				{
+					object: bucketKey.keyGroup,
+					version: parseInt(neverNull(bucketKey.pubKeyVersion)),
+				},
+				bucketKey.pubEncBucketKey,
+			)
 		} else if (bucketKey.groupEncBucketKey) {
 			// secure external recipient
 			let keyGroup
@@ -289,7 +297,7 @@ export class CryptoFacade {
 				// by default, we try to decrypt the bucket key with the ownerGroupKey
 				keyGroup = neverNull(instance._ownerGroup)
 			}
-			decBucketKey = decryptKey(this.userFacade.getGroupKey(keyGroup), bucketKey.groupEncBucketKey)
+			decBucketKey = decryptKey(this.userFacade.getGroupKey(keyGroup, parseInt(neverNull(bucketKey.pubKeyVersion))), bucketKey.groupEncBucketKey)
 		} else {
 			throw new SessionKeyNotFoundError(`encrypted bucket key not set on instance ${typeModel.name}`)
 		}
@@ -299,7 +307,9 @@ export class CryptoFacade {
 		if (resolvedSessionKeyForInstance) {
 			// for symmetrically encrypted instances _ownerEncSessionKey is sent from the server.
 			// in this case it is not yet and we need to set it because the rest of the app expects it.
-			instance._ownerEncSessionKey = uint8ArrayToBase64(encryptKey(this.userFacade.getGroupKey(instance._ownerGroup), resolvedSessionKeyForInstance))
+			const key = this.userFacade.getLatestGroupKey(instance._ownerGroup)
+			instance._ownerEncSessionKey = uint8ArrayToBase64(encryptKey(key.object, resolvedSessionKeyForInstance))
+			instance._ownerKeyVersion = key.version
 			return resolvedSessionKeyForInstance
 		} else {
 			throw new SessionKeyNotFoundError("no session key for instance " + instance._id)
@@ -322,9 +332,11 @@ export class CryptoFacade {
 			if (instanceElementId == instanceSessionKey.instanceId) {
 				resolvedSessionKeyForInstance = decryptedSessionKey
 			}
-			const ownerEncSessionKey = encryptKey(this.userFacade.getGroupKey(instance._ownerGroup), decryptedSessionKey)
+			const groupKey = this.userFacade.getLatestGroupKey(instance._ownerGroup)
+			const ownerEncSessionKey = encryptKey(groupKey.object, decryptedSessionKey)
 			const instanceSessionKeyWithOwnerEncSessionKey = createInstanceSessionKey(instanceSessionKey)
 			instanceSessionKeyWithOwnerEncSessionKey.symEncSessionKey = ownerEncSessionKey
+			instanceSessionKeyWithOwnerEncSessionKey.symKeyVersion = groupKey.version.toString()
 			return instanceSessionKeyWithOwnerEncSessionKey
 		})
 		return { resolvedSessionKeyForInstance, instanceSessionKeys }
@@ -363,7 +375,10 @@ export class CryptoFacade {
 		let bucketKey
 
 		if (bucketPermission.ownerEncBucketKey != null) {
-			bucketKey = decryptKey(this.userFacade.getGroupKey(neverNull(bucketPermission._ownerGroup)), bucketPermission.ownerEncBucketKey)
+			bucketKey = decryptKey(
+				this.userFacade.getGroupKey(neverNull(bucketPermission._ownerGroup), parseInt(neverNull(bucketPermission.ownerKeyVersion))),
+				bucketPermission.ownerEncBucketKey,
+			)
 		} else if (bucketPermission.symEncBucketKey) {
 			bucketKey = decryptKey(this.userFacade.getUserGroupKey(), bucketPermission.symEncBucketKey)
 		} else {
@@ -375,17 +390,17 @@ export class CryptoFacade {
 		return decryptKey(bucketKey, neverNull(pubOrExtPermission.bucketEncSessionKey))
 	}
 
-	private async loadKeypair(keyPairGroupId: Id): Promise<RsaKeyPair | PQKeyPairs> {
-		const group = await this.entityClient.load(GroupTypeRef, keyPairGroupId)
+	private async loadKeypair(keyPairGroupId: UsingVersion<Id>): Promise<RsaKeyPair | PQKeyPairs> {
+		const group = await this.entityClient.load(GroupTypeRef, keyPairGroupId.object)
 		try {
-			return decryptKeyPair(this.userFacade.getGroupKey(group._id), group.keys[0])
+			return decryptKeyPair(this.userFacade.getGroupKey(group._id, keyPairGroupId.version), group.keys[0])
 		} catch (e) {
 			console.log("failed to decrypt keypair for group with id " + group._id)
 			throw e
 		}
 	}
 
-	private async decryptBucketKeyWithKeyPairOfGroup(keyPairGroupId: Id, pubEncBucketKey: Uint8Array): Promise<Aes128Key | Aes256Key> {
+	private async decryptBucketKeyWithKeyPairOfGroup(keyPairGroupId: UsingVersion<Id>, pubEncBucketKey: Uint8Array): Promise<Aes128Key | Aes256Key> {
 		const keyPair = await this.loadKeypair(keyPairGroupId)
 		if (keyPair instanceof PQKeyPairs) {
 			const decryptedBucketKey = await this.pq.decapsulate(decodePQMessage(pubEncBucketKey), keyPair)
@@ -415,14 +430,23 @@ export class CryptoFacade {
 			)
 		}
 
-		const bucketKey = await this.decryptBucketKeyWithKeyPairOfGroup(bucketPermission.group, pubEncBucketKey)
+		const bucketKey = await this.decryptBucketKeyWithKeyPairOfGroup(
+			{
+				object: bucketPermission.group,
+				version: parseInt(neverNull(bucketPermission.pubKeyVersion)),
+			},
+			pubEncBucketKey,
+		)
 
 		const sk = decryptKey(bucketKey, bucketEncSessionKey)
 
 		if (bucketPermission._ownerGroup) {
 			// is not defined for some old AccountingInfos
-			let bucketPermissionOwnerGroupKey = this.userFacade.getGroupKey(neverNull(bucketPermission._ownerGroup))
-			let bucketPermissionGroupKey = this.userFacade.getGroupKey(bucketPermission.group)
+			let bucketPermissionOwnerGroupKey = this.userFacade.getGroupKey(
+				neverNull(bucketPermission._ownerGroup),
+				parseInt(neverNull(bucketPermission.ownerKeyVersion)),
+			)
+			let bucketPermissionGroupKey = this.userFacade.getGroupKey(bucketPermission.group, parseInt(neverNull(bucketPermission.symKeyVersion)))
 			await this.updateWithSymPermissionKey(
 				typeModel,
 				instance,
@@ -469,7 +493,7 @@ export class CryptoFacade {
 	 * the entity must already have an _ownerGroup
 	 * @returns the generated key
 	 */
-	setNewOwnerEncSessionKey(model: TypeModel, entity: Record<string, any>, keyToEncryptSessionKey?: Aes128Key): Aes128Key | null {
+	setNewOwnerEncSessionKey(model: TypeModel, entity: Record<string, any>, keyToEncryptSessionKey?: VersionedKey): Aes128Key | null {
 		if (!entity._ownerGroup) {
 			throw new Error(`no owner group set  ${JSON.stringify(entity)}`)
 		}
@@ -480,53 +504,50 @@ export class CryptoFacade {
 			}
 
 			const sessionKey = aes128RandomKey()
-			const effectiveKeyToEncryptSessionKey = keyToEncryptSessionKey ?? this.userFacade.getGroupKey(entity._ownerGroup)
-			entity._ownerEncSessionKey = encryptKey(effectiveKeyToEncryptSessionKey, sessionKey)
+			const effectiveKeyToEncryptSessionKey = keyToEncryptSessionKey ?? this.userFacade.getLatestGroupKey(entity._ownerGroup)
+			entity._ownerEncSessionKey = encryptKey(effectiveKeyToEncryptSessionKey.object, sessionKey)
+			entity._ownerKeyVersion = effectiveKeyToEncryptSessionKey.version
 			return sessionKey
 		} else {
 			return null
 		}
 	}
 
-	encryptBucketKeyForInternalRecipient(
-		senderUserGroupId: Id,
+	async encryptBucketKeyForInternalRecipient(
+		senderUserGroupId: UsingVersion<Id>,
 		bucketKey: Aes128Key,
 		recipientMailAddress: string,
 		notFoundRecipients: Array<string>,
 	): Promise<InternalRecipientKeyData | void> {
-		let keyData = createPublicKeyData()
+		const keyData = createPublicKeyGetIn()
 		keyData.mailAddress = recipientMailAddress
-		return this.serviceExecutor
-			.get(PublicKeyService, keyData)
-			.then(async (publicKeyData) => {
-				let encrypted: Uint8Array
-				if (notFoundRecipients.length === 0) {
-					const pub = this.getPublicKey(publicKeyData)
-					let uint8ArrayBucketKey = bitArrayToUint8Array(bucketKey)
-					if (pub instanceof PQPublicKeys) {
-						const senderKeyPair = await this.loadKeypair(senderUserGroupId)
-						const senderIdentityKeyPair = senderKeyPair instanceof PQKeyPairs ? senderKeyPair.eccKeyPair : generateEccKeyPair()
-						encrypted = encodePQMessage(await this.pq.encapsulate(senderIdentityKeyPair, generateEccKeyPair(), pub, uint8ArrayBucketKey))
-					} else {
-						encrypted = await this.rsa.encrypt(pub, uint8ArrayBucketKey)
-					}
-					let data = createInternalRecipientKeyData()
-					data.mailAddress = recipientMailAddress
-					data.pubEncBucketKey = encrypted
-					data.pubKeyVersion = publicKeyData.pubKeyVersion
-					return data
+
+		try {
+			const publicKeyData = await this.serviceExecutor.get(PublicKeyService, keyData)
+			let encrypted: Uint8Array
+			if (notFoundRecipients.length === 0) {
+				const pub = this.getPublicKey(publicKeyData)
+				const uint8ArrayBucketKey = bitArrayToUint8Array(bucketKey)
+				if (pub instanceof PQPublicKeys) {
+					const senderKeyPair = await this.loadKeypair(senderUserGroupId)
+					const senderIdentityKeyPair = senderKeyPair instanceof PQKeyPairs ? senderKeyPair.eccKeyPair : generateEccKeyPair()
+					encrypted = encodePQMessage(await this.pq.encapsulate(senderIdentityKeyPair, generateEccKeyPair(), pub, uint8ArrayBucketKey))
+				} else {
+					encrypted = await this.rsa.encrypt(pub, uint8ArrayBucketKey)
 				}
-			})
-			.catch(
-				ofClass(NotFoundError, (e) => {
-					notFoundRecipients.push(recipientMailAddress)
-				}),
-			)
-			.catch(
-				ofClass(TooManyRequestsError, (e) => {
-					throw new RecipientNotResolvedError("")
-				}),
-			)
+				const data = createInternalRecipientKeyData()
+				data.mailAddress = recipientMailAddress
+				data.pubEncBucketKey = encrypted
+				data.pubKeyVersion = publicKeyData.pubKeyVersion
+				return data
+			}
+		} catch (e) {
+			if (e instanceof NotFoundError) {
+				notFoundRecipients.push(recipientMailAddress)
+			} else if (e instanceof TooManyRequestsError) {
+				throw new RecipientNotResolvedError("")
+			}
+		}
 	}
 
 	/**
@@ -596,7 +617,7 @@ export class CryptoFacade {
 		}
 	}
 
-	public getPublicKey(keyPair: PublicKeyReturn): RsaPublicKey | PQPublicKeys {
+	public getPublicKey(keyPair: PublicKeyGetOut): RsaPublicKey | PQPublicKeys {
 		if (keyPair.pubRsaKey) {
 			return hexToRsaPublicKey(uint8ArrayToHex(keyPair.pubRsaKey))
 		} else if (keyPair.pubKyberKey && keyPair.pubEccKey) {
