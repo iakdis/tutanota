@@ -28,6 +28,7 @@ import { getEnabledMailAddressesForGroupInfo } from "../../../common/utils/Group
 import { PreconditionFailedError } from "../../../common/error/RestError.js"
 import { ProgrammingError } from "../../../common/error/ProgrammingError.js"
 import { GroupManagementFacade } from "./GroupManagementFacade.js"
+import { Aes128Key, Aes256Key, Versioned } from "@tutao/tutanota-crypto"
 
 assertWorkerOrNode()
 
@@ -180,7 +181,7 @@ export class MailAddressFacade {
 		return await this.nonCachingEntityClient.load(GroupInfoTypeRef, group.groupInfo)
 	}
 
-	private async createMailboxProperties(mailboxGroupRoot: MailboxGroupRoot, groupKey: Aes128Key): Promise<Id> {
+	private async createMailboxProperties(mailboxGroupRoot: MailboxGroupRoot, groupKey: Versioned<Aes128Key | Aes256Key>): Promise<Id> {
 		// Using non-caching entityClient because we are not a member of the user's mail group and we won't receive updates for it
 		const mailboxProperties = createMailboxProperties({
 			_ownerGroup: mailboxGroupRoot._ownerGroup,

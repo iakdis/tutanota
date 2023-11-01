@@ -27,6 +27,7 @@ import { LoginIncompleteError } from "../../common/error/LoginIncompleteError.js
 import { BlobServerUrl } from "../../entities/storage/TypeRefs.js"
 import { BlobAccessTokenFacade } from "../facades/BlobAccessTokenFacade.js"
 import { isOfflineError } from "../../common/utils/ErrorCheckUtils.js"
+import { Aes128Key, Aes256Key, EncryptedWithGroupKeyVersion, Versioned } from "@tutao/tutanota-crypto"
 
 assertWorkerOrNode()
 
@@ -37,7 +38,7 @@ export function typeRefToPath(typeRef: TypeRef<any>): string {
 export interface EntityRestClientSetupOptions {
 	baseUrl?: string
 	/** Use this key to encrypt session key instead of trying to resolve the owner key based on the ownerGroup. */
-	ownerKey?: VersionedKey
+	ownerKey?: Versioned<Aes128Key | Aes256Key>
 }
 
 /**
@@ -70,7 +71,7 @@ export interface EntityRestInterface {
 		typeRef: TypeRef<T>,
 		listId: Id | null,
 		elementIds: Array<Id>,
-		providedOwnerEncSessionKeys?: Map<Id, UsingVersion<Uint8Array>>,
+		providedOwnerEncSessionKeys?: Map<Id, EncryptedWithGroupKeyVersion<Uint8Array>>,
 	): Promise<Array<T>>
 
 	/**
@@ -193,7 +194,7 @@ export class EntityRestClient implements EntityRestInterface {
 		typeRef: TypeRef<T>,
 		listId: Id | null,
 		elementIds: Array<Id>,
-		providedOwnerEncSessionKeys?: Map<Id, UsingVersion<Uint8Array>>,
+		providedOwnerEncSessionKeys?: Map<Id, EncryptedWithGroupKeyVersion<Uint8Array>>,
 	): Promise<Array<T>> {
 		const { path, headers } = await this._validateAndPrepareRestRequest(typeRef, listId, null, undefined, undefined, undefined)
 		const idChunks = splitInChunks(LOAD_MULTIPLE_LIMIT, elementIds)
@@ -257,7 +258,7 @@ export class EntityRestClient implements EntityRestInterface {
 	async _handleLoadMultipleResult<T extends SomeEntity>(
 		typeRef: TypeRef<T>,
 		loadedEntities: Array<any>,
-		providedOwnerEncSessionKeys?: Map<Id, UsingVersion<Uint8Array>>,
+		providedOwnerEncSessionKeys?: Map<Id, EncryptedWithGroupKeyVersion<Uint8Array>>,
 	): Promise<Array<T>> {
 		const model = await resolveTypeReference(typeRef)
 
@@ -281,10 +282,10 @@ export class EntityRestClient implements EntityRestInterface {
 		)
 	}
 
-	async _decryptMapAndMigrate<T>(instance: any, model: TypeModel, providedOwnerEncSessionKey?: UsingVersion<Uint8Array>): Promise<T> {
+	async _decryptMapAndMigrate<T>(instance: any, model: TypeModel, providedOwnerEncSessionKey?: EncryptedWithGroupKeyVersion<Uint8Array>): Promise<T> {
 		let sessionKey
 		if (providedOwnerEncSessionKey) {
-			sessionKey = this._crypto.decryptSessionKey(instance, providedOwnerEncSessionKey)
+			sessionKey = await this._crypto.decryptSessionKey(instance, providedOwnerEncSessionKey)
 		} else {
 			try {
 				sessionKey = await this._crypto.resolveSessionKey(model, instance)

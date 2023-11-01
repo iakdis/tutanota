@@ -230,6 +230,96 @@
 			"version": 91,
 			"changes": [
 				{
+					"name": "AddValue",
+					"sourceType": "AccountingInfo",
+					"info": "AddValue AccountingInfo/_ownerKeyVersion/2137."
+				},
+				{
+					"name": "AddValue",
+					"sourceType": "CustomerServerProperties",
+					"info": "AddValue CustomerServerProperties/_ownerKeyVersion/2138."
+				},
+				{
+					"name": "AddValue",
+					"sourceType": "GroupInfo",
+					"info": "AddValue GroupInfo/_ownerKeyVersion/2139."
+				},
+				{
+					"name": "AddValue",
+					"sourceType": "AuditLogEntry",
+					"info": "AddValue AuditLogEntry/_ownerKeyVersion/2141."
+				},
+				{
+					"name": "AddValue",
+					"sourceType": "Session",
+					"info": "AddValue Session/_ownerKeyVersion/2143."
+				},
+				{
+					"name": "AddValue",
+					"sourceType": "WhitelabelChild",
+					"info": "AddValue WhitelabelChild/_ownerKeyVersion/2144."
+				},
+				{
+					"name": "AddValue",
+					"sourceType": "OrderProcessingAgreement",
+					"info": "AddValue OrderProcessingAgreement/_ownerKeyVersion/2145."
+				},
+				{
+					"name": "AddValue",
+					"sourceType": "UserAlarmInfo",
+					"info": "AddValue UserAlarmInfo/_ownerKeyVersion/2147."
+				},
+				{
+					"name": "AddValue",
+					"sourceType": "ReceivedGroupInvitation",
+					"info": "AddValue ReceivedGroupInvitation/_ownerKeyVersion/2148."
+				},
+				{
+					"name": "AddValue",
+					"sourceType": "Invoice",
+					"info": "AddValue Invoice/_ownerKeyVersion/2149."
+				},
+				{
+					"name": "AddValue",
+					"sourceType": "MissedNotification",
+					"info": "AddValue MissedNotification/_ownerKeyVersion/2150."
+				},
+				{
+					"name": "AddValue",
+					"sourceType": "GiftCard",
+					"info": "AddValue GiftCard/_ownerKeyVersion/2152."
+				},
+				{
+					"name": "AddValue",
+					"sourceType": "PushIdentifier",
+					"info": "AddValue PushIdentifier/_ownerKeyVersion/2155."
+				},
+				{
+					"name": "AddValue",
+					"sourceType": "Permission",
+					"info": "AddValue Permission/_ownerKeyVersion/2156."
+				},
+				{
+					"name": "AddValue",
+					"sourceType": "GroupMembership",
+					"info": "AddValue GroupMembership/groupKeyVersion/2158."
+				},
+				{
+					"name": "AddValue",
+					"sourceType": "GroupMembership",
+					"info": "AddValue GroupMembership/symKeyVersion/2159."
+				},
+				{
+					"name": "AddValue",
+					"sourceType": "BucketPermission",
+					"info": "AddValue BucketPermission/ownerKeyVersion/2160."
+				},
+				{
+					"name": "AddValue",
+					"sourceType": "BucketPermission",
+					"info": "AddValue BucketPermission/symKeyVersion/2161."
+				},
+				{
 					"name": "RenameAttribute",
 					"sourceType": "KeyPair",
 					"info": "RenameAttribute KeyPair: pubKey -> pubRsaKey."
@@ -252,22 +342,52 @@
 				{
 					"name": "AddValue",
 					"sourceType": "KeyPair",
-					"info": "AddValue KeyPair/pubEccKey/2137."
+					"info": "AddValue KeyPair/pubEccKey/2162."
 				},
 				{
 					"name": "AddValue",
 					"sourceType": "KeyPair",
-					"info": "AddValue KeyPair/symEncPrivEccKey/2138."
+					"info": "AddValue KeyPair/symEncPrivEccKey/2163."
 				},
 				{
 					"name": "AddValue",
 					"sourceType": "KeyPair",
-					"info": "AddValue KeyPair/pubKyberKey/2139."
+					"info": "AddValue KeyPair/pubKyberKey/2164."
 				},
 				{
 					"name": "AddValue",
 					"sourceType": "KeyPair",
-					"info": "AddValue KeyPair/symEncPrivKyberKey/2140."
+					"info": "AddValue KeyPair/symEncPrivKyberKey/2165."
+				},
+				{
+					"name": "AddValue",
+					"sourceType": "BucketKey",
+					"info": "AddValue BucketKey/pubKeyVersion/2172."
+				},
+				{
+					"name": "AddValue",
+					"sourceType": "InstanceSessionKey",
+					"info": "AddValue InstanceSessionKey/symKeyVersion/2173."
+				},
+				{
+					"name": "AddValue",
+					"sourceType": "Group",
+					"info": "AddValue Group/adminGroupKeyVersion/2190."
+				},
+				{
+					"name": "AddValue",
+					"sourceType": "Group",
+					"info": "AddValue Group/groupKeyVersion/2191."
+				},
+				{
+					"name": "AddValue",
+					"sourceType": "Group",
+					"info": "AddValue Group/groupKeyHash/2192."
+				},
+				{
+					"name": "AddAssociation",
+					"sourceType": "Group",
+					"info": "AddAssociation Group/formerGroupKeys/AGGREGATION/2193."
 				}
 			]
 		}

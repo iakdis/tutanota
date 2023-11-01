@@ -8,7 +8,7 @@ import {
 	createUserAreaGroupDeleteData,
 	createUserAreaGroupPostData,
 } from "../../../entities/tutanota/TypeRefs.js"
-import { assertNotNull, hexToUint8Array, neverNull } from "@tutao/tutanota-utils"
+import { assertNotNull, getFromMap, hexToUint8Array, neverNull } from "@tutao/tutanota-utils"
 import type { Group, User } from "../../../entities/sys/TypeRefs.js"
 import { createMembershipAddData, createMembershipRemoveData, GroupTypeRef, UserTypeRef } from "../../../entities/sys/TypeRefs.js"
 import { CounterFacade } from "./CounterFacade.js"
@@ -16,7 +16,18 @@ import { EntityClient } from "../../../common/EntityClient.js"
 import { assertWorkerOrNode } from "../../../common/Env.js"
 import { encryptString } from "../../crypto/CryptoFacade.js"
 import type { RsaImplementation } from "../../crypto/RsaImplementation.js"
-import { aes128RandomKey, decryptKey, encryptKey, encryptRsaKey, rsaPublicKeyToHex, RsaKeyPair } from "@tutao/tutanota-crypto"
+import {
+	aes128RandomKey,
+	decryptKey,
+	encryptKey,
+	encryptRsaKey,
+	rsaPublicKeyToHex,
+	RsaKeyPair,
+	Aes256Key,
+	Versioned,
+	BitArray,
+	Aes128Key,
+} from "@tutao/tutanota-crypto"
 import { IServiceExecutor } from "../../../common/ServiceRequest.js"
 import {
 	CalendarService,
@@ -29,10 +40,13 @@ import { MembershipService } from "../../../entities/sys/Services.js"
 import { UserFacade } from "../UserFacade.js"
 import { ProgrammingError } from "../../../common/error/ProgrammingError.js"
 import { DefaultEntityRestCache } from "../../rest/DefaultEntityRestCache.js"
+import { getFromMapAsync } from "@tutao/tutanota-utils/dist/MapUtils.js"
 
 assertWorkerOrNode()
 
 export class GroupManagementFacade {
+	private adminGroupKeys: Map<Id, Map<number, Aes128Key | Aes256Key>> = new Map()
+
 	constructor(
 		private readonly user: UserFacade,
 		private readonly counters: CounterFacade,
@@ -233,40 +247,54 @@ export class GroupManagementFacade {
 	 * Some groups (e.g. user groups or shared mailboxes) have adminGroupEncGKey set on creation. For those groups we can fairly easy get a group key without
 	 * decrypting userGroupKey of some member of that group.
 	 */
-	getGroupKeyViaAdminEncGKey(groupId: Id): Promise<Aes128Key> {
+	async getGroupKeyViaAdminEncGKey(groupId: Id): Promise<Aes128Key | Aes256Key> {
 		if (this.user.hasGroup(groupId)) {
 			// e.g. I am a global admin and want to add another user to the global admin group
-			return Promise.resolve(this.user.getGroupKey(groupId, undefined, this.entityClient))
+			return (await this.user.getLatestGroupKey(groupId, this.entityClient)).object
 		} else {
-			return this.entityClient.load(GroupTypeRef, groupId).then((group) => {
-				if (group.adminGroupEncGKey == null || group.adminGroupEncGKey.length === 0) {
-					throw new ProgrammingError("Group doesn't have adminGroupEncGKey, you can't get group key this way")
+			const group = await this.entityClient.load(GroupTypeRef, groupId)
+			if (group.adminGroupEncGKey == null || group.adminGroupEncGKey.length === 0) {
+				throw new ProgrammingError("Group doesn't have adminGroupEncGKey, you can't get group key this way")
+			}
+
+			let adminGroupKey
+			if (group.admin && this.user.hasGroup(group.admin)) {
+				// e.g. I am a member of the group that administrates group G and want to add a new member to G
+				adminGroupKey = await this.user.getGroupKey(assertNotNull(group.admin), parseInt(assertNotNull(group.adminGroupKeyVersion)), this.entityClient)
+			} else {
+				// e.g. I am a global admin but group G is administrated by a local admin group and want to add a new member to G
+				const globalAdminGroupId = this.user.getGroupId(GroupType.Admin)
+				const localAdminGroup = await this.entityClient.load(GroupTypeRef, assertNotNull(group.admin))
+				const globalAdminGroupKey = await this.user.getGroupKey(
+					globalAdminGroupId,
+					parseInt(assertNotNull(localAdminGroup.adminGroupKeyVersion)),
+					this.entityClient,
+				)
+				if (localAdminGroup.admin !== globalAdminGroupId) {
+					throw new Error(`local admin group ${localAdminGroup._id} is not administrated by global admin group ${globalAdminGroupId}`)
 				}
-				return Promise.resolve()
-					.then(() => {
-						if (group.admin && this.user.hasGroup(group.admin)) {
-							// e.g. I am a member of the group that administrates group G and want to add a new member to G
-							return this.user.getGroupKey(assertNotNull(group.admin), undefined, this.entityClient)
-						} else {
-							// e.g. I am a global admin but group G is administrated by a local admin group and want to add a new member to G
-							let globalAdminGroupId = this.user.getGroupId(GroupType.Admin)
+				if (localAdminGroup.groupKeyVersion !== group.adminGroupKeyVersion) {
+					throw new Error(`the admin group key version we have is not the one we need`)
+				}
+				adminGroupKey = decryptKey(globalAdminGroupKey, assertNotNull(localAdminGroup.adminGroupEncGKey))
+			}
 
-							let globalAdminGroupKey = this.user.getGroupKey(globalAdminGroupId, undefined, this.entityClient)
-
-							return this.entityClient.load(GroupTypeRef, assertNotNull(group.admin)).then((localAdminGroup) => {
-								if (localAdminGroup.admin === globalAdminGroupId) {
-									return decryptKey(globalAdminGroupKey, assertNotNull(localAdminGroup.adminGroupEncGKey))
-								} else {
-									throw new Error(`local admin group ${localAdminGroup._id} is not administrated by global admin group ${globalAdminGroupId}`)
-								}
-							})
-						}
-					})
-					.then((adminGroupKey) => {
-						return decryptKey(adminGroupKey, assertNotNull(group.adminGroupEncGKey))
-					})
-			})
+			return decryptKey(adminGroupKey, assertNotNull(group.adminGroupEncGKey))
 		}
+	}
+
+	private getAdminGroupKeyMap(groupId: Id): Map<number, Aes128Key | Aes256Key> {
+		return getFromMap(this.adminGroupKeys, groupId, () => new Map<number, Aes128Key | Aes256Key>())
+	}
+	private async getAdminGroupKey(groupId: Id, version: number): Promise<Aes128Key | Aes256Key> {
+		const versions = this.getAdminGroupKeyMap(groupId)
+		return getFromMapAsync(versions, version, async () => {
+			const group = await this.entityClient.load(GroupTypeRef, groupId)
+			if (version == parseInt(group.groupKeyVersion)) {
+			} else {
+				// todo: load other group keys from former group keys with version as min id and go backwards to eventually decrypt it
+			}
+		})
 	}
 
 	/*

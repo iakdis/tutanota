@@ -228,6 +228,15 @@ export const typeModels = {
                 "cardinality": "ZeroOrOne",
                 "encrypted": false
             },
+            "_ownerKeyVersion": {
+                "final": true,
+                "name": "_ownerKeyVersion",
+                "id": 1352,
+                "since": 65,
+                "type": "Number",
+                "cardinality": "ZeroOrOne",
+                "encrypted": false
+            },
             "_permissions": {
                 "final": true,
                 "name": "_permissions",
@@ -566,6 +575,15 @@ export const typeModels = {
                 "cardinality": "ZeroOrOne",
                 "encrypted": false
             },
+            "_ownerKeyVersion": {
+                "final": true,
+                "name": "_ownerKeyVersion",
+                "id": 1356,
+                "since": 65,
+                "type": "Number",
+                "cardinality": "ZeroOrOne",
+                "encrypted": false
+            },
             "_permissions": {
                 "final": true,
                 "name": "_permissions",
@@ -676,6 +694,15 @@ export const typeModels = {
                 "id": 952,
                 "since": 33,
                 "type": "GeneratedId",
+                "cardinality": "ZeroOrOne",
+                "encrypted": false
+            },
+            "_ownerKeyVersion": {
+                "final": true,
+                "name": "_ownerKeyVersion",
+                "id": 1353,
+                "since": 65,
+                "type": "Number",
                 "cardinality": "ZeroOrOne",
                 "encrypted": false
             },
@@ -863,6 +890,15 @@ export const typeModels = {
                 "id": 585,
                 "since": 13,
                 "type": "GeneratedId",
+                "cardinality": "ZeroOrOne",
+                "encrypted": false
+            },
+            "_ownerKeyVersion": {
+                "final": true,
+                "name": "_ownerKeyVersion",
+                "id": 1345,
+                "since": 65,
+                "type": "Number",
                 "cardinality": "ZeroOrOne",
                 "encrypted": false
             },
@@ -1512,6 +1548,15 @@ export const typeModels = {
                 "cardinality": "ZeroOrOne",
                 "encrypted": false
             },
+            "_ownerKeyVersion": {
+                "final": true,
+                "name": "_ownerKeyVersion",
+                "id": 1348,
+                "since": 65,
+                "type": "Number",
+                "cardinality": "ZeroOrOne",
+                "encrypted": false
+            },
             "_permissions": {
                 "final": true,
                 "name": "_permissions",
@@ -1592,6 +1637,15 @@ export const typeModels = {
                 "cardinality": "ZeroOrOne",
                 "encrypted": false
             },
+            "_ownerKeyVersion": {
+                "final": true,
+                "name": "_ownerKeyVersion",
+                "id": 1360,
+                "since": 65,
+                "type": "Number",
+                "cardinality": "ZeroOrOne",
+                "encrypted": false
+            },
             "_permissions": {
                 "final": true,
                 "name": "_permissions",
@@ -1657,6 +1711,15 @@ export const typeModels = {
                 "id": 1338,
                 "since": 64,
                 "type": "GeneratedId",
+                "cardinality": "ZeroOrOne",
+                "encrypted": false
+            },
+            "_ownerKeyVersion": {
+                "final": true,
+                "name": "_ownerKeyVersion",
+                "id": 1361,
+                "since": 65,
+                "type": "Number",
                 "cardinality": "ZeroOrOne",
                 "encrypted": false
             },
@@ -2093,6 +2156,15 @@ export const typeModels = {
                 "id": 1268,
                 "since": 57,
                 "type": "GeneratedId",
+                "cardinality": "ZeroOrOne",
+                "encrypted": false
+            },
+            "ownerKeyVersion": {
+                "final": true,
+                "name": "ownerKeyVersion",
+                "id": 1365,
+                "since": 65,
+                "type": "Number",
                 "cardinality": "ZeroOrOne",
                 "encrypted": false
             }
@@ -3096,6 +3168,15 @@ export const typeModels = {
                 "cardinality": "ZeroOrOne",
                 "encrypted": false
             },
+            "_ownerKeyVersion": {
+                "final": true,
+                "name": "_ownerKeyVersion",
+                "id": 1357,
+                "since": 65,
+                "type": "Number",
+                "cardinality": "ZeroOrOne",
+                "encrypted": false
+            },
             "_permissions": {
                 "final": true,
                 "name": "_permissions",
@@ -3492,6 +3573,15 @@ export const typeModels = {
                 "cardinality": "ZeroOrOne",
                 "encrypted": false
             },
+            "_ownerKeyVersion": {
+                "final": true,
+                "name": "_ownerKeyVersion",
+                "id": 1342,
+                "since": 65,
+                "type": "Number",
+                "cardinality": "ZeroOrOne",
+                "encrypted": false
+            },
             "_permissions": {
                 "final": true,
                 "name": "_permissions",
@@ -3615,6 +3705,15 @@ export const typeModels = {
                 "id": 581,
                 "since": 13,
                 "type": "GeneratedId",
+                "cardinality": "ZeroOrOne",
+                "encrypted": false
+            },
+            "_ownerKeyVersion": {
+                "final": true,
+                "name": "_ownerKeyVersion",
+                "id": 1343,
+                "since": 65,
+                "type": "Number",
                 "cardinality": "ZeroOrOne",
                 "encrypted": false
             },
@@ -4194,7 +4293,7 @@ export const typeModels = {
             "groupEncPrivEccKey": {
                 "final": true,
                 "name": "groupEncPrivEccKey",
-                "id": 1343,
+                "id": 1367,
                 "since": 65,
                 "type": "Bytes",
                 "cardinality": "ZeroOrOne",
@@ -4203,7 +4302,7 @@ export const typeModels = {
             "groupEncPrivKyberKey": {
                 "final": true,
                 "name": "groupEncPrivKyberKey",
-                "id": 1345,
+                "id": 1369,
                 "since": 65,
                 "type": "Bytes",
                 "cardinality": "ZeroOrOne",
@@ -4230,7 +4329,7 @@ export const typeModels = {
             "pubEccKey": {
                 "final": true,
                 "name": "pubEccKey",
-                "id": 1342,
+                "id": 1366,
                 "since": 65,
                 "type": "Bytes",
                 "cardinality": "ZeroOrOne",
@@ -4239,7 +4338,7 @@ export const typeModels = {
             "pubKyberKey": {
                 "final": true,
                 "name": "pubKyberKey",
-                "id": 1344,
+                "id": 1368,
                 "since": 65,
                 "type": "Bytes",
                 "cardinality": "ZeroOrOne",
@@ -4362,6 +4461,15 @@ export const typeModels = {
                 "id": 1176,
                 "since": 45,
                 "type": "GeneratedId",
+                "cardinality": "ZeroOrOne",
+                "encrypted": false
+            },
+            "_ownerKeyVersion": {
+                "final": true,
+                "name": "_ownerKeyVersion",
+                "id": 1364,
+                "since": 65,
+                "type": "Number",
                 "cardinality": "ZeroOrOne",
                 "encrypted": false
             },
@@ -4534,6 +4642,15 @@ export const typeModels = {
                 "id": 587,
                 "since": 13,
                 "type": "GeneratedId",
+                "cardinality": "ZeroOrOne",
+                "encrypted": false
+            },
+            "_ownerKeyVersion": {
+                "final": true,
+                "name": "_ownerKeyVersion",
+                "id": 1346,
+                "since": 65,
+                "type": "Number",
                 "cardinality": "ZeroOrOne",
                 "encrypted": false
             },
@@ -4974,6 +5091,15 @@ export const typeModels = {
                 "cardinality": "ZeroOrOne",
                 "encrypted": false
             },
+            "_ownerKeyVersion": {
+                "final": true,
+                "name": "_ownerKeyVersion",
+                "id": 1344,
+                "since": 65,
+                "type": "Number",
+                "cardinality": "ZeroOrOne",
+                "encrypted": false
+            },
             "_permissions": {
                 "final": true,
                 "name": "_permissions",
@@ -5048,6 +5174,15 @@ export const typeModels = {
                 "id": 590,
                 "since": 13,
                 "type": "GeneratedId",
+                "cardinality": "ZeroOrOne",
+                "encrypted": false
+            },
+            "_ownerKeyVersion": {
+                "final": true,
+                "name": "_ownerKeyVersion",
+                "id": 1347,
+                "since": 65,
+                "type": "Number",
                 "cardinality": "ZeroOrOne",
                 "encrypted": false
             },
@@ -5271,6 +5406,15 @@ export const typeModels = {
                 "cardinality": "ZeroOrOne",
                 "encrypted": false
             },
+            "_ownerKeyVersion": {
+                "final": true,
+                "name": "_ownerKeyVersion",
+                "id": 1359,
+                "since": 65,
+                "type": "Number",
+                "cardinality": "ZeroOrOne",
+                "encrypted": false
+            },
             "_permissions": {
                 "final": true,
                 "name": "_permissions",
@@ -5338,6 +5482,15 @@ export const typeModels = {
                 "id": 1295,
                 "since": 58,
                 "type": "GeneratedId",
+                "cardinality": "ZeroOrOne",
+                "encrypted": false
+            },
+            "_ownerKeyVersion": {
+                "final": true,
+                "name": "_ownerKeyVersion",
+                "id": 1358,
+                "since": 65,
+                "type": "Number",
                 "cardinality": "ZeroOrOne",
                 "encrypted": false
             },
@@ -5442,6 +5595,15 @@ export const typeModels = {
                 "id": 589,
                 "since": 13,
                 "type": "GeneratedId",
+                "cardinality": "ZeroOrOne",
+                "encrypted": false
+            },
+            "_ownerKeyVersion": {
+                "final": true,
+                "name": "_ownerKeyVersion",
+                "id": 1350,
+                "since": 65,
+                "type": "Number",
                 "cardinality": "ZeroOrOne",
                 "encrypted": false
             },
@@ -5584,6 +5746,15 @@ export const typeModels = {
                 "id": 609,
                 "since": 14,
                 "type": "GeneratedId",
+                "cardinality": "ZeroOrOne",
+                "encrypted": false
+            },
+            "_ownerKeyVersion": {
+                "final": true,
+                "name": "_ownerKeyVersion",
+                "id": 1351,
+                "since": 65,
+                "type": "Number",
                 "cardinality": "ZeroOrOne",
                 "encrypted": false
             },
@@ -5856,6 +6027,15 @@ export const typeModels = {
                 "id": 1200,
                 "since": 47,
                 "type": "GeneratedId",
+                "cardinality": "ZeroOrOne",
+                "encrypted": false
+            },
+            "_ownerKeyVersion": {
+                "final": true,
+                "name": "_ownerKeyVersion",
+                "id": 1362,
+                "since": 65,
+                "type": "Number",
                 "cardinality": "ZeroOrOne",
                 "encrypted": false
             },
@@ -7019,6 +7199,15 @@ export const typeModels = {
                 "cardinality": "ZeroOrOne",
                 "encrypted": false
             },
+            "ownerKeyVersion": {
+                "final": true,
+                "name": "ownerKeyVersion",
+                "id": 1370,
+                "since": 65,
+                "type": "Number",
+                "cardinality": "ZeroOrOne",
+                "encrypted": false
+            },
             "passwordVerifier": {
                 "final": true,
                 "name": "passwordVerifier",
@@ -7468,6 +7657,15 @@ export const typeModels = {
                 "cardinality": "ZeroOrOne",
                 "encrypted": false
             },
+            "_ownerKeyVersion": {
+                "final": true,
+                "name": "_ownerKeyVersion",
+                "id": 1363,
+                "since": 65,
+                "type": "Number",
+                "cardinality": "ZeroOrOne",
+                "encrypted": false
+            },
             "_permissions": {
                 "final": true,
                 "name": "_permissions",
@@ -7545,6 +7743,15 @@ export const typeModels = {
                 "id": 597,
                 "since": 13,
                 "type": "GeneratedId",
+                "cardinality": "ZeroOrOne",
+                "encrypted": false
+            },
+            "_ownerKeyVersion": {
+                "final": true,
+                "name": "_ownerKeyVersion",
+                "id": 1349,
+                "since": 65,
+                "type": "Number",
                 "cardinality": "ZeroOrOne",
                 "encrypted": false
             },
@@ -8181,6 +8388,15 @@ export const typeModels = {
                 "id": 977,
                 "since": 34,
                 "type": "GeneratedId",
+                "cardinality": "ZeroOrOne",
+                "encrypted": false
+            },
+            "_ownerKeyVersion": {
+                "final": true,
+                "name": "_ownerKeyVersion",
+                "id": 1354,
+                "since": 65,
+                "type": "Number",
                 "cardinality": "ZeroOrOne",
                 "encrypted": false
             },

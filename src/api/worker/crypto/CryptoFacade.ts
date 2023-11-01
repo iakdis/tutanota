@@ -44,6 +44,7 @@ import { RestClient } from "../rest/RestClient"
 import {
 	Aes128Key,
 	aes128RandomKey,
+	Aes256Key,
 	aesEncrypt,
 	bitArrayToUint8Array,
 	decryptKey,
@@ -61,6 +62,7 @@ import {
 	RsaKeyPair,
 	RsaPublicKey,
 	uint8ArrayToBitArray,
+	Versioned,
 } from "@tutao/tutanota-crypto"
 import { RecipientNotResolvedError } from "../../common/error/RecipientNotResolvedError"
 import type { RsaImplementation } from "./RsaImplementation"
@@ -192,8 +194,8 @@ export class CryptoFacade {
 		return decryptKey(ownerKey, key)
 	}
 
-	decryptSessionKey(instance: Record<string, any>, ownerEncSessionKey: EncryptedWithGroupKeyVersion<Uint8Array>): Aes128Key {
-		const gk = this.userFacade.getGroupKey(instance._ownerGroup, ownerEncSessionKey.version, this.entityClient)
+	async decryptSessionKey(instance: Record<string, any>, ownerEncSessionKey: EncryptedWithGroupKeyVersion<Uint8Array>): Promise<Aes128Key> {
+		const gk = await this.userFacade.getGroupKey(instance._ownerGroup, ownerEncSessionKey.groupKeyVersion, this.entityClient)
 		return decryptKey(gk, ownerEncSessionKey.object)
 	}
 
@@ -315,7 +317,7 @@ export class CryptoFacade {
 		if (resolvedSessionKeyForInstance) {
 			// for symmetrically encrypted instances _ownerEncSessionKey is sent from the server.
 			// in this case it is not yet and we need to set it because the rest of the app expects it.
-			const key = this.userFacade.getLatestGroupKey(instance._ownerGroup)
+			const key = this.userFacade.getLatestGroupKey(instance._ownerGroup, this.entityClient)
 			instance._ownerEncSessionKey = uint8ArrayToBase64(encryptKey(key.object, resolvedSessionKeyForInstance))
 			instance._ownerKeyVersion = key.version
 			return resolvedSessionKeyForInstance
@@ -340,7 +342,7 @@ export class CryptoFacade {
 			if (instanceElementId == instanceSessionKey.instanceId) {
 				resolvedSessionKeyForInstance = decryptedSessionKey
 			}
-			const groupKey = this.userFacade.getLatestGroupKey(instance._ownerGroup)
+			const groupKey = this.userFacade.getLatestGroupKey(instance._ownerGroup, this.entityClient)
 			const ownerEncSessionKey = encryptKey(groupKey.object, decryptedSessionKey)
 			const instanceSessionKeyWithOwnerEncSessionKey = createInstanceSessionKey(instanceSessionKey)
 			instanceSessionKeyWithOwnerEncSessionKey.symEncSessionKey = ownerEncSessionKey
@@ -506,7 +508,7 @@ export class CryptoFacade {
 	 * the entity must already have an _ownerGroup
 	 * @returns the generated key
 	 */
-	setNewOwnerEncSessionKey(model: TypeModel, entity: Record<string, any>, keyToEncryptSessionKey?: VersionedKey): Aes128Key | null {
+	setNewOwnerEncSessionKey(model: TypeModel, entity: Record<string, any>, keyToEncryptSessionKey?: Versioned<Aes128Key | Aes256Key>): Aes128Key | null {
 		if (!entity._ownerGroup) {
 			throw new Error(`no owner group set  ${JSON.stringify(entity)}`)
 		}
@@ -517,7 +519,7 @@ export class CryptoFacade {
 			}
 
 			const sessionKey = aes128RandomKey()
-			const effectiveKeyToEncryptSessionKey = keyToEncryptSessionKey ?? this.userFacade.getLatestGroupKey(entity._ownerGroup)
+			const effectiveKeyToEncryptSessionKey = keyToEncryptSessionKey ?? (await this.userFacade.getLatestGroupKey(entity._ownerGroup, this.entityClient))
 			entity._ownerEncSessionKey = encryptKey(effectiveKeyToEncryptSessionKey.object, sessionKey)
 			entity._ownerKeyVersion = effectiveKeyToEncryptSessionKey.version
 			return sessionKey

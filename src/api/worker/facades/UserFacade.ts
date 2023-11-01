@@ -6,7 +6,6 @@ import { createWebsocketLeaderStatus, GroupKeyTypeRef, GroupMembership, GroupTyp
 import { LoginIncompleteError } from "../../common/error/LoginIncompleteError"
 import { getFromMapAsync } from "@tutao/tutanota-utils/dist/MapUtils.js"
 import { EntityClient } from "../../common/EntityClient.js"
-import { TutanotaError } from "../../common/error/TutanotaError.js"
 import { NotFoundError } from "../../common/error/RestError.js"
 
 export interface AuthDataProvider {
@@ -111,21 +110,19 @@ export class UserFacade implements AuthDataProvider {
 
 	async getGroupKey(groupId: Id, version: number, entityClient: EntityClient): Promise<Aes128Key | Aes256Key> {
 		const groupKeys = this.getGroupKeyMap(groupId)
-		return getFromMapAsync(groupKeys, version, async () => this.retrieveGroupKey(groupId, entityClient, version))
+		return getFromMapAsync(groupKeys, version, async () => await this.retrieveGroupKey(groupId, entityClient, version))
 	}
 
 	private async retrieveGroupKey(groupId: string, entityClient: EntityClient, version: number): Promise<Aes128Key | Aes256Key> {
-		const membership = this.getMembership(groupId)
-		const userGroupKey = await this.getUserGroupKey(parseInt(membership.symKeyVersion), entityClient)
-		const groupKeyVersionInMembership = parseInt(membership.groupKeyVersion)
-
-		if (version === groupKeyVersionInMembership) {
-			return decryptKey(userGroupKey, membership.symEncGKey)
+		if (version != null) {
+			const result = await this.retrieveGroupKeyFromMembership(groupId, entityClient, version)
+			if (result) {
+				return result.object
+			}
 		}
 
 		const group = await entityClient.load(GroupTypeRef, groupId)
 		const list = group.formerGroupKeys?.list
-
 		if (list == null) {
 			throw new NotFoundError(`no former group key list found for group ${groupId}`)
 		}
@@ -135,8 +132,22 @@ export class UserFacade implements AuthDataProvider {
 		return decryptKey(encryptingKey, groupKeyInstance.ownerEncGKey)
 	}
 
-	getLatestGroupKey(groupId: Id): Versioned<Aes128Key | Aes256Key> {
-		throw new Error("unimplemented")
+	private async retrieveGroupKeyFromMembership(
+		groupId: string,
+		entityClient: EntityClient,
+		versionToCheck?: number,
+	): Promise<Versioned<Aes128Key | Aes256Key> | null> {
+		const membership = this.getMembership(groupId)
+		const userGroupKey = await this.getUserGroupKey(parseInt(membership.symKeyVersion), entityClient)
+		const groupKeyVersionInMembership = parseInt(membership.groupKeyVersion)
+		if (versionToCheck != null && versionToCheck !== groupKeyVersionInMembership) {
+			return null
+		}
+		return { object: decryptKey(userGroupKey, membership.symEncGKey), version: groupKeyVersionInMembership }
+	}
+
+	async getLatestGroupKey(groupId: Id, entityClient: EntityClient): Promise<Versioned<Aes128Key | Aes256Key>> {
+		return neverNull(await this.retrieveGroupKeyFromMembership(groupId, entityClient))
 	}
 
 	getMembership(groupId: Id): GroupMembership {

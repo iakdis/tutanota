@@ -1342,8 +1342,11 @@ export type Group = {
 	_ownerGroup: null | Id;
 	_permissions: Id;
 	adminGroupEncGKey: null | Uint8Array;
+	adminGroupKeyVersion: null | NumberString;
 	enabled: boolean;
 	external: boolean;
+	groupKeyHash: Uint8Array;
+	groupKeyVersion: NumberString;
 	type: NumberString;
 
 	admin:  null | Id;
