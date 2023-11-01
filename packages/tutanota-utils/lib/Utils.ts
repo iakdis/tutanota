@@ -535,11 +535,3 @@ export class BoundedExecutor {
 		}
 	}
 }
-
-/**
- * Defines a relationship between an object and a version for a key to derive using the object and version
- */
-export type UsingVersion<T> = {
-	object: T
-	version: number
-}

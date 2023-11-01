@@ -53,9 +53,9 @@ export class GroupManagementFacade {
 			adminGroupIds = this.user.getGroupIds(GroupType.LocalAdmin)
 		}
 
-		let adminGroupKey = this.user.getGroupKey(adminGroupIds[0])
+		let adminGroupKey = this.user.getGroupKey(adminGroupIds[0], undefined, this.entityClient)
 
-		let customerGroupKey = this.user.getGroupKey(this.user.getGroupId(GroupType.Customer))
+		let customerGroupKey = this.user.getGroupKey(this.user.getGroupId(GroupType.Customer), undefined, this.entityClient)
 
 		let mailGroupKey = aes128RandomKey()
 		let mailGroupInfoSessionKey = aes128RandomKey()
@@ -95,12 +95,12 @@ export class GroupManagementFacade {
 
 			if (this.user.getAllGroupIds().indexOf(adminGroupId) !== -1) {
 				// getGroupKey throws an error if user is not member of that group - so check first
-				adminGroupKey = this.user.getGroupKey(adminGroupId)
+				adminGroupKey = this.user.getGroupKey(adminGroupId, undefined, this.entityClient)
 			}
 
-			const customerGroupKey = this.user.getGroupKey(this.user.getGroupId(GroupType.Customer))
+			const customerGroupKey = this.user.getGroupKey(this.user.getGroupId(GroupType.Customer), undefined, this.entityClient)
 
-			const userGroupKey = this.user.getUserGroupKey()
+			const userGroupKey = this.user.getUserGroupKey(undefined, this.entityClient)
 
 			const groupRootSessionKey = aes128RandomKey()
 			const groupInfoSessionKey = aes128RandomKey()
@@ -236,7 +236,7 @@ export class GroupManagementFacade {
 	getGroupKeyViaAdminEncGKey(groupId: Id): Promise<Aes128Key> {
 		if (this.user.hasGroup(groupId)) {
 			// e.g. I am a global admin and want to add another user to the global admin group
-			return Promise.resolve(this.user.getGroupKey(groupId))
+			return Promise.resolve(this.user.getGroupKey(groupId, undefined, this.entityClient))
 		} else {
 			return this.entityClient.load(GroupTypeRef, groupId).then((group) => {
 				if (group.adminGroupEncGKey == null || group.adminGroupEncGKey.length === 0) {
@@ -246,12 +246,12 @@ export class GroupManagementFacade {
 					.then(() => {
 						if (group.admin && this.user.hasGroup(group.admin)) {
 							// e.g. I am a member of the group that administrates group G and want to add a new member to G
-							return this.user.getGroupKey(assertNotNull(group.admin))
+							return this.user.getGroupKey(assertNotNull(group.admin), undefined, this.entityClient)
 						} else {
 							// e.g. I am a global admin but group G is administrated by a local admin group and want to add a new member to G
 							let globalAdminGroupId = this.user.getGroupId(GroupType.Admin)
 
-							let globalAdminGroupKey = this.user.getGroupKey(globalAdminGroupId)
+							let globalAdminGroupKey = this.user.getGroupKey(globalAdminGroupId, undefined, this.entityClient)
 
 							return this.entityClient.load(GroupTypeRef, assertNotNull(group.admin)).then((localAdminGroup) => {
 								if (localAdminGroup.admin === globalAdminGroupId) {

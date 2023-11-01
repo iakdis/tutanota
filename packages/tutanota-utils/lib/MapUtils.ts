@@ -29,6 +29,17 @@ export function getFromMap<K, V>(map: Map<K, V>, key: K, byDefault: () => V): V 
 	return value
 }
 
+export async function getFromMapAsync<K, V>(map: Map<K, V>, key: K, byDefault: () => Promise<V>): Promise<V> {
+	let value = map.get(key)
+
+	if (!value) {
+		value = await byDefault()
+		map.set(key, value)
+	}
+
+	return value
+}
+
 /** Creates a new map with key and value added to {@param map}. It is like set() but for immutable map. */
 export function addMapEntry<K, V>(map: ReadonlyMap<K, V>, key: K, value: V): Map<K, V> {
 	const newMap = new Map(map)

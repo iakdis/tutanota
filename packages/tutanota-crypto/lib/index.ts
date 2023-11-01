@@ -9,7 +9,6 @@ export {
 	Aes128Key,
 	Aes256Key,
 	aes256EncryptSearchIndexEntry,
-	VersionedKey,
 } from "./encryption/Aes.js"
 export {
 	EccPrivateKey,
@@ -84,6 +83,9 @@ export {
 	checkIs128BitKey,
 	keyToUint8Array,
 	uint8ArrayToKey,
+	EncryptedWithGroupKeyVersion,
+	Versioned,
+	BitArray,
 } from "./misc/Utils.js"
 export { murmurHash } from "./hashes/MurmurHash.js"
 export { hkdf } from "./hashes/HKDF.js"

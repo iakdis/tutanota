@@ -108,3 +108,19 @@ export function keyToUint8Array(key: BitArray): Uint8Array {
 	return base64ToUint8Array(keyToBase64(key))
 }
 export const fixedIv: Uint8Array = hexToUint8Array("88888888888888888888888888888888")
+
+/**
+ * A group key and its version.
+ */
+export type Versioned<T extends Uint8Array | Array<number>> = {
+	object: T
+	version: number
+}
+
+/**
+ * Stores an encrypted object or reference to (ID of) and object that is encrypted with some group key we need to know the version of.
+ */
+export type EncryptedWithGroupKeyVersion<T> = {
+	object: T
+	groupKeyVersion: number
+}

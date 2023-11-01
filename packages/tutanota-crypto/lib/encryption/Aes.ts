@@ -5,7 +5,6 @@ import { arrayEquals, concat, uint8ArrayToBase64 } from "@tutao/tutanota-utils"
 import { sha256Hash } from "../hashes/Sha256.js"
 import { CryptoError } from "../misc/CryptoError.js"
 import { sha512Hash } from "../hashes/Sha512.js"
-import { UsingVersion } from "@tutao/tutanota-utils/dist/Utils.js"
 
 export const ENABLE_MAC = true
 export const IV_BYTE_LENGTH = 16
@@ -18,11 +17,6 @@ const MAC_LENGTH_BYTES = 32
 
 export type Aes256Key = BitArray
 export type Aes128Key = BitArray
-
-/**
- * Defines a relationship between a key and a version (e.g. group keys)
- */
-export type VersionedKey = UsingVersion<Aes128Key | Aes256Key>
 
 /**
  * @return the key length in bytes

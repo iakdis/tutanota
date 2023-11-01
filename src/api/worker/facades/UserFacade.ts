@@ -1,9 +1,13 @@
 import { GroupType } from "../../common/TutanotaConstants"
-import { Aes128Key, decryptKey, VersionedKey } from "@tutao/tutanota-crypto"
-import { assertNotNull, getFromMap, neverNull, UsingVersion } from "@tutao/tutanota-utils"
+import { Aes128Key, Aes256Key, decryptKey, Versioned } from "@tutao/tutanota-crypto"
+import { assertNotNull, base64ToBase64Url, getFromMap, neverNull, stringToBase64 } from "@tutao/tutanota-utils"
 import { ProgrammingError } from "../../common/error/ProgrammingError"
-import { createWebsocketLeaderStatus, GroupMembership, User, WebsocketLeaderStatus } from "../../entities/sys/TypeRefs"
+import { createWebsocketLeaderStatus, GroupKeyTypeRef, GroupMembership, GroupTypeRef, User, WebsocketLeaderStatus } from "../../entities/sys/TypeRefs"
 import { LoginIncompleteError } from "../../common/error/LoginIncompleteError"
+import { getFromMapAsync } from "@tutao/tutanota-utils/dist/MapUtils.js"
+import { EntityClient } from "../../common/EntityClient.js"
+import { TutanotaError } from "../../common/error/TutanotaError.js"
+import { NotFoundError } from "../../common/error/RestError.js"
 
 export interface AuthDataProvider {
 	/**
@@ -18,8 +22,12 @@ export interface AuthDataProvider {
 export class UserFacade implements AuthDataProvider {
 	private user: User | null = null
 	private accessToken: string | null = null
-	/** A cache for decrypted keys of each group. Encrypted keys are stored on membership.symEncGKey. */
-	private groupKeys: Map<Id, VersionedKey> = new Map()
+	/**
+	 * A cache for decrypted keys of each group. Encrypted keys are stored on membership.symEncGKey.
+	 *
+	 * Instances are mapped from group ID to a map of versions to decrypted keys
+	 */
+	private groupKeys: Map<Id, Map<number, Aes128Key | Aes256Key>> = new Map()
 	private leaderStatus!: WebsocketLeaderStatus
 
 	constructor() {
@@ -48,10 +56,10 @@ export class UserFacade implements AuthDataProvider {
 		if (this.user == null) {
 			throw new ProgrammingError("Invalid state: no user")
 		}
-		this.groupKeys.set(this.getUserGroupId(), {
-			object: decryptKey(userPassphraseKey, this.user.userGroup.symEncGKey),
-			version: parseInt(neverNull(this.user.userGroup.symKeyVersion)),
-		})
+		this.getGroupKeyMap(this.getUserGroupId()).set(
+			parseInt(neverNull(this.user.userGroup.groupKeyVersion)),
+			decryptKey(userPassphraseKey, this.user.userGroup.symEncGKey),
+		)
 	}
 
 	updateUser(user: User) {
@@ -86,47 +94,48 @@ export class UserFacade implements AuthDataProvider {
 		return groups
 	}
 
-	getUserGroupKey(version: number): VersionedKey {
+	getUserGroupKey(version: number, entityClient: EntityClient): Promise<Aes128Key | Aes256Key> {
 		// the userGroupKey is always written after the login to this.groupKeys
 		//if the user has only logged in offline this has not happened
 		let userGroupId = this.getUserGroupId()
-		const userGroupKey = this.groupKeys.get(userGroupId)
-		if (userGroupKey == null) {
+		const userGroupKeys = this.groupKeys.get(userGroupId)
+		if (userGroupKeys == null) {
 			if (this.isPartiallyLoggedIn()) {
 				throw new LoginIncompleteError("userGroupKey not available")
 			} else {
 				throw new ProgrammingError("Invalid state: userGroupKey is not available")
 			}
 		}
+		return this.getGroupKey(userGroupId, version, entityClient)
+	}
 
-		// cache miss due to different version
-		if (userGroupKey.version !== version) {
-			const key = this.getGroupKey({ version, object: userGroupId })
+	async getGroupKey(groupId: Id, version: number, entityClient: EntityClient): Promise<Aes128Key | Aes256Key> {
+		const groupKeys = this.getGroupKeyMap(groupId)
+		return getFromMapAsync(groupKeys, version, async () => this.retrieveGroupKey(groupId, entityClient, version))
+	}
 
-			// latest version updated in the meantime, update cache
-			// FIXME TODO BROKEN ::: :#:#:#: :#: ::DOHUIASRDHGIJLASREHIUOASRHUIOEAS(&UGAWRE(&UPGHASED - DO WE DO THIS, OR DO WE DO A MAP OF MAPS WITH IT
-			if (version > userGroupKey.version) {
-				this.groupKeys.set(userGroupId, key)
-			}
+	private async retrieveGroupKey(groupId: string, entityClient: EntityClient, version: number): Promise<Aes128Key | Aes256Key> {
+		const membership = this.getMembership(groupId)
+		const userGroupKey = await this.getUserGroupKey(parseInt(membership.symKeyVersion), entityClient)
+		const groupKeyVersionInMembership = parseInt(membership.groupKeyVersion)
 
-			return key
+		if (version === groupKeyVersionInMembership) {
+			return decryptKey(userGroupKey, membership.symEncGKey)
 		}
 
-		return userGroupKey
+		const group = await entityClient.load(GroupTypeRef, groupId)
+		const list = group.formerGroupKeys?.list
+
+		if (list == null) {
+			throw new NotFoundError(`no former group key list found for group ${groupId}`)
+		}
+
+		const groupKeyInstance = await entityClient.load(GroupKeyTypeRef, [list, base64ToBase64Url(stringToBase64(version.toString()))])
+		const encryptingKey = await this.getGroupKey(groupId, parseInt(groupKeyInstance.ownerKeyVersion), entityClient)
+		return decryptKey(encryptingKey, groupKeyInstance.ownerEncGKey)
 	}
 
-	getGroupKey(groupId: UsingVersion<Id>): VersionedKey {
-		return getFromMap(this.groupKeys, groupId.object, () => {
-			// FIXME: IS THIS CORRECT?
-			const membership = this.getMembership(groupId.object)
-			const userGroupKey = this.getUserGroupKey(parseInt(membership.groupKeyVersion))
-			const decrypted = decryptKey(userGroupKey.object, membership.symEncGKey)
-
-			return { object: decrypted, version: parseInt(membership.symKeyVersion) }
-		})
-	}
-
-	getLatestGroupKey(groupId: Id): VersionedKey {
+	getLatestGroupKey(groupId: Id): Versioned<Aes128Key | Aes256Key> {
 		throw new Error("unimplemented")
 	}
 
@@ -197,5 +206,9 @@ export class UserFacade implements AuthDataProvider {
 		this.leaderStatus = createWebsocketLeaderStatus({
 			leaderStatus: false,
 		})
+	}
+
+	private getGroupKeyMap(groupId: Id): Map<number, Aes128Key | Aes256Key> {
+		return getFromMap(this.groupKeys, groupId, () => new Map<number, Aes128Key | Aes256Key>())
 	}
 }

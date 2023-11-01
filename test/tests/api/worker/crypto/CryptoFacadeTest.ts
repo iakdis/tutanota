@@ -569,7 +569,7 @@ o.spec("CryptoFacade", function () {
 		let recipientName = "Yahoo"
 		const gk = aes128RandomKey()
 		const sk = aes128RandomKey()
-		when(userFacade.getGroupKey("mailGroupId")).thenReturn(gk)
+		when(userFacade.getGroupKey("mailGroupId", undefined, this.entityClient)).thenReturn(gk)
 		const user = createUser({
 			userGroup: createGroupMembership({
 				group: "mailGroupId",
@@ -636,7 +636,7 @@ o.spec("CryptoFacade", function () {
 			userGroup: mem,
 		})
 		when(userFacade.getLoggedInUser()).thenReturn(user)
-		when(userFacade.getGroupKey("userGroupId")).thenReturn(gk)
+		when(userFacade.getGroupKey("userGroupId", undefined, this.entityClient)).thenReturn(gk)
 		when(userFacade.isLeader()).thenReturn(true)
 
 		when(entityClient.loadAll(BucketPermissionTypeRef, getListId(bucketPermission))).thenResolve([bucketPermission])
@@ -714,7 +714,7 @@ o.spec("CryptoFacade", function () {
 			userGroup: mem,
 		})
 		when(userFacade.getLoggedInUser()).thenReturn(user)
-		when(userFacade.getGroupKey("userGroupId")).thenReturn(gk)
+		when(userFacade.getGroupKey("userGroupId", undefined, this.entityClient)).thenReturn(gk)
 		when(userFacade.isLeader()).thenReturn(true)
 
 		when(entityClient.loadAll(BucketPermissionTypeRef, getListId(bucketPermission))).thenResolve([bucketPermission])
@@ -1090,7 +1090,7 @@ o.spec("CryptoFacade", function () {
 	o("resolve session key: MailDetailsBlob", async function () {
 		const gk = aes128RandomKey()
 		const sk = aes128RandomKey()
-		when(userFacade.getGroupKey("mailGroupId")).thenReturn(gk)
+		when(userFacade.getGroupKey("mailGroupId", undefined, this.entityClient)).thenReturn(gk)
 		when(userFacade.hasGroup("mailGroupId")).thenReturn(true)
 		when(userFacade.isFullyLoggedIn()).thenReturn(true)
 
@@ -1209,8 +1209,8 @@ o.spec("CryptoFacade", function () {
 		})
 
 		when(userFacade.getLoggedInUser()).thenReturn(user)
-		when(userFacade.getGroupKey("userGroupId")).thenReturn(userGk)
-		when(userFacade.getGroupKey("mailGroupId")).thenReturn(mailGk)
+		when(userFacade.getGroupKey("userGroupId", undefined, this.entityClient)).thenReturn(userGk)
+		when(userFacade.getGroupKey("mailGroupId", undefined, this.entityClient)).thenReturn(mailGk)
 		when(userFacade.isLeader()).thenReturn(true)
 
 		when(entityClient.load(GroupTypeRef, userGroup._id)).thenResolve(userGroup)
@@ -1319,8 +1319,8 @@ o.spec("CryptoFacade", function () {
 		})
 
 		when(userFacade.getLoggedInUser()).thenReturn(user)
-		when(userFacade.getGroupKey("userGroupId")).thenReturn(userGk)
-		when(userFacade.getGroupKey("mailGroupId")).thenReturn(mailGk)
+		when(userFacade.getGroupKey("userGroupId", undefined, this.entityClient)).thenReturn(userGk)
+		when(userFacade.getGroupKey("mailGroupId", undefined, this.entityClient)).thenReturn(mailGk)
 		when(userFacade.isLeader()).thenReturn(true)
 
 		when(entityClient.load(GroupTypeRef, userGroup._id)).thenResolve(userGroup)
@@ -1420,8 +1420,8 @@ o.spec("CryptoFacade", function () {
 		})
 
 		when(userFacade.getLoggedInUser()).thenReturn(user)
-		when(userFacade.getGroupKey("mailGroupId")).thenReturn(gk)
-		when(userFacade.getGroupKey(userGroup._id)).thenReturn(ugk)
+		when(userFacade.getGroupKey("mailGroupId", undefined, this.entityClient)).thenReturn(gk)
+		when(userFacade.getGroupKey(userGroup._id, undefined, this.entityClient)).thenReturn(ugk)
 		when(userFacade.isLeader()).thenReturn(true)
 
 		when(entityClient.load(GroupTypeRef, userGroup._id)).thenResolve(userGroup)

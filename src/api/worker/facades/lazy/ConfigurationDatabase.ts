@@ -44,7 +44,7 @@ export class ConfigurationDatabase {
 	) {
 		this.db = new LazyLoaded(() => {
 			const user = assertNotNull(userFacade.getLoggedInUser())
-			const userGroupKey = userFacade.getUserGroupKey()
+			const userGroupKey = userFacade.getUserGroupKey(undefined, this.entityClient)
 			return dbLoadFn(user, userGroupKey)
 		})
 	}

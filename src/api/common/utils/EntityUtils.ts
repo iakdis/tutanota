@@ -25,10 +25,6 @@ import { ProgrammingError } from "../error/ProgrammingError.js"
 export const GENERATED_MAX_ID = "zzzzzzzzzzzz"
 
 /**
- *
- */
-
-/**
  * The minimum ID for elements with generated id stored on the server
  */
 export const GENERATED_MIN_ID = "------------"

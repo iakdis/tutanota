@@ -398,7 +398,7 @@ function initIndexer(worker: WorkerImpl, cacheInfo: CacheInfo): Promise<void> {
 		return indexer
 			.init({
 				user: assertNotNull(locator.user.getUser()),
-				userGroupKey: locator.user.getUserGroupKey(),
+				userGroupKey: locator.user.getUserGroupKey(undefined, this.entityClient),
 				cacheInfo,
 			})
 			.catch(

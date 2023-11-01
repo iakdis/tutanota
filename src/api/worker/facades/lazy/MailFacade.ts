@@ -165,7 +165,7 @@ export class MailFacade {
 	) {}
 
 	async createMailFolder(name: string, parent: IdTuple | null, ownerGroupId: Id): Promise<void> {
-		const mailGroupKey = this.userFacade.getGroupKey(ownerGroupId)
+		const mailGroupKey = this.userFacade.getGroupKey(ownerGroupId, undefined, this.entityClient)
 
 		const sk = aes128RandomKey()
 		const newFolder = createCreateMailFolderData({
@@ -234,9 +234,9 @@ export class MailFacade {
 
 		const senderMailGroupId = await this._getMailGroupIdForMailAddress(this.userFacade.getLoggedInUser(), senderMailAddress)
 
-		const userGroupKey = this.userFacade.getUserGroupKey()
+		const userGroupKey = this.userFacade.getUserGroupKey(undefined, this.entityClient)
 
-		const mailGroupKey = this.userFacade.getGroupKey(senderMailGroupId)
+		const mailGroupKey = this.userFacade.getGroupKey(senderMailGroupId, undefined, this.entityClient)
 
 		const sk = aes128RandomKey()
 		const service = createDraftCreateData()
@@ -294,7 +294,7 @@ export class MailFacade {
 
 		const senderMailGroupId = await this._getMailGroupIdForMailAddress(this.userFacade.getLoggedInUser(), senderMailAddress)
 
-		const mailGroupKey = this.userFacade.getGroupKey(senderMailGroupId)
+		const mailGroupKey = this.userFacade.getGroupKey(senderMailGroupId, undefined, this.entityClient)
 		const currentAttachments = await this.getAttachmentIds(draft)
 		const replyTos = await this.getReplyTos(draft)
 
@@ -700,7 +700,7 @@ export class MailFacade {
 						]).then(([externalMailGroup, externalUserGroup]) => {
 							const userAdminKey = assertNotNull(externalUserGroup.adminGroupEncGKey, "no adminGroupEncGKey on external user group")
 							const mailAdminKey = assertNotNull(externalMailGroup.adminGroupEncGKey, "no adminGroupEncGKey on external mail group")
-							let externalUserGroupKey = decryptKey(this.userFacade.getUserGroupKey(), userAdminKey)
+							let externalUserGroupKey = decryptKey(this.userFacade.getUserGroupKey(undefined, this.entityClient), userAdminKey)
 							let externalMailGroupKey = decryptKey(externalUserGroupKey, mailAdminKey)
 							return {
 								externalUserGroupKey,
@@ -712,7 +712,7 @@ export class MailFacade {
 				.catch(
 					ofClass(NotFoundError, (e) => {
 						// it does not exist, so create it
-						let internalMailGroupKey = this.userFacade.getGroupKey(this.userFacade.getGroupId(GroupType.Mail))
+						let internalMailGroupKey = this.userFacade.getGroupKey(this.userFacade.getGroupId(GroupType.Mail), undefined, this.entityClient)
 
 						let externalUserGroupKey = aes128RandomKey()
 						let externalMailGroupKey = aes128RandomKey()
@@ -736,7 +736,10 @@ export class MailFacade {
 						let userGroupData = createCreateExternalUserGroupData()
 						userGroupData.mailAddress = cleanedMailAddress
 						userGroupData.externalPwEncUserGroupKey = encryptKey(externalUserPwKey, externalUserGroupKey)
-						userGroupData.internalUserEncUserGroupKey = encryptKey(this.userFacade.getUserGroupKey(), externalUserGroupKey)
+						userGroupData.internalUserEncUserGroupKey = encryptKey(
+							this.userFacade.getUserGroupKey(undefined, this.entityClient),
+							externalUserGroupKey,
+						)
 						d.userGroupData = userGroupData
 						return this.serviceExecutor.post(ExternalUserService, d).then(() => {
 							return {

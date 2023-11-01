@@ -772,7 +772,7 @@ export class LoginFacade {
 		return this.entityClient.loadRoot(TutanotaPropertiesTypeRef, this.userFacade.getUserGroupId()).then((tutanotaProperties) => {
 			if (tutanotaProperties.groupEncEntropy) {
 				try {
-					let entropy = aesDecrypt(this.userFacade.getUserGroupKey(), neverNull(tutanotaProperties.groupEncEntropy))
+					let entropy = aesDecrypt(this.userFacade.getUserGroupKey(undefined, this.entityClient), neverNull(tutanotaProperties.groupEncEntropy))
 					random.addStaticEntropy(entropy)
 				} catch (error) {
 					if (error instanceof CryptoError) {
@@ -790,7 +790,7 @@ export class LoginFacade {
 
 		const salt = generateRandomSalt()
 		const newUserPassphraseKey = await this.deriveUserPassphraseKey(newKdfType, newPassword, salt)
-		const pwEncUserGroupKey = encryptKey(newUserPassphraseKey, this.userFacade.getUserGroupKey())
+		const pwEncUserGroupKey = encryptKey(newUserPassphraseKey, this.userFacade.getUserGroupKey(undefined, this.entityClient))
 		const authVerifier = createAuthVerifier(newUserPassphraseKey)
 		const service = createChangePasswordData()
 

@@ -151,7 +151,6 @@ export {
 	Require,
 	memoizedWithHiddenArgument,
 	BoundedExecutor,
-	UsingVersion,
 } from "./Utils.js"
 export type { Callback, DeferredObject, lazy, lazyAsync, Thunk, DeferredObjectWithHandler, MaybeLazy, TimeoutSetter, ErrorInfo } from "./Utils.js"
 

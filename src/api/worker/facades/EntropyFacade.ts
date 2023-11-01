@@ -41,7 +41,7 @@ export class EntropyFacade {
 	storeEntropy(): Promise<void> {
 		// We only store entropy to the server if we are the leader
 		if (!this.userFacade.isFullyLoggedIn() || !this.userFacade.isLeader()) return Promise.resolve()
-		const userGroupKey = this.userFacade.getUserGroupKey()
+		const userGroupKey = this.userFacade.getUserGroupKey(undefined, this.entityClient)
 		const entropyData = createEntropyData({
 			groupEncEntropy: encryptBytes(userGroupKey, this.random.generateRandomData(32)),
 		})

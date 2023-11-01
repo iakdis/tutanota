@@ -12,7 +12,7 @@ import {
 	NotFoundError,
 	PayloadTooLargeError,
 } from "../../common/error/RestError"
-import type { lazy, UsingVersion } from "@tutao/tutanota-utils"
+import type { lazy } from "@tutao/tutanota-utils"
 import { assertNotNull, isSameTypeRef, Mapper, neverNull, ofClass, promiseMap, splitInChunks, TypeRef } from "@tutao/tutanota-utils"
 import { assertWorkerOrNode } from "../../common/Env"
 import type { ListElementEntity, SomeEntity, TypeModel } from "../../common/EntityTypes"
@@ -27,7 +27,6 @@ import { LoginIncompleteError } from "../../common/error/LoginIncompleteError.js
 import { BlobServerUrl } from "../../entities/storage/TypeRefs.js"
 import { BlobAccessTokenFacade } from "../facades/BlobAccessTokenFacade.js"
 import { isOfflineError } from "../../common/utils/ErrorCheckUtils.js"
-import { VersionedKey } from "@tutao/tutanota-crypto"
 
 assertWorkerOrNode()
 
