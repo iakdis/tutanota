@@ -70,7 +70,7 @@ export class UserManagementFacade {
 	async changeAdminFlag(user: User, admin: boolean): Promise<void> {
 		let adminGroupId = this.userFacade.getGroupId(GroupType.Admin)
 
-		let adminGroupKey = this.userFacade.getGroupKey(adminGroupId, undefined, this.entityClient)
+		let adminGroupKey = await this.userFacade.getGroupKey(adminGroupId, undefined, this.entityClient)
 
 		const userGroup = await this.entityClient.load(GroupTypeRef, user.userGroup.group)
 		let userGroupKey = decryptKey(adminGroupKey, neverNull(userGroup.adminGroupEncGKey))
@@ -84,7 +84,7 @@ export class UserManagementFacade {
 				const addAccountGroup = createMembershipAddData({
 					user: user._id,
 					group: keyData.group,
-					symEncGKey: encryptKey(userGroupKey, decryptKey(this.userFacade.getUserGroupKey(undefined, this.entityClient), keyData.symEncGKey)),
+					symEncGKey: encryptKey(userGroupKey, decryptKey(await this.userFacade.getUserGroupKey(undefined, this.entityClient), keyData.symEncGKey)),
 				})
 				await this.serviceExecutor.post(MembershipService, addAccountGroup)
 			}
@@ -130,7 +130,7 @@ export class UserManagementFacade {
 		const group = await this.entityClient.load(GroupTypeRef, groupId)
 		const oldAdminGroup = await this.entityClient.load(GroupTypeRef, neverNull(group.admin))
 
-		const adminGroupKey = this.userFacade.getGroupKey(adminGroupId, undefined, this.entityClient)
+		const adminGroupKey = await this.userFacade.getGroupKey(adminGroupId, undefined, this.entityClient)
 
 		let groupKey
 		if (oldAdminGroup._id === adminGroupId) {
@@ -201,9 +201,9 @@ export class UserManagementFacade {
 
 		const adminGroupId = adminGroupIds[0]
 
-		const adminGroupKey = this.userFacade.getGroupKey(adminGroupId, undefined, this.entityClient)
+		const adminGroupKey = await this.userFacade.getGroupKey(adminGroupId, undefined, this.entityClient)
 
-		const customerGroupKey = this.userFacade.getGroupKey(this.userFacade.getGroupId(GroupType.Customer), undefined, this.entityClient)
+		const customerGroupKey = await this.userFacade.getGroupKey(this.userFacade.getGroupId(GroupType.Customer), undefined, this.entityClient)
 
 		const userGroupKey = aes128RandomKey()
 		const userGroupInfoSessionKey = aes128RandomKey()
@@ -334,7 +334,7 @@ export class UserManagementFacade {
 
 		const recoveryCodeEntity = await this.entityClient.load(RecoverCodeTypeRef, recoverCodeId, undefined, extraHeaders)
 		return uint8ArrayToHex(
-			bitArrayToUint8Array(decryptKey(this.userFacade.getUserGroupKey(undefined, this.entityClient), recoveryCodeEntity.userEncRecoverCode)),
+			bitArrayToUint8Array(decryptKey(await this.userFacade.getUserGroupKey(undefined, this.entityClient), recoveryCodeEntity.userEncRecoverCode)),
 		)
 	}
 
@@ -346,7 +346,7 @@ export class UserManagementFacade {
 		}
 
 		const { userEncRecoverCode, recoverCodeEncUserGroupKey, hexCode, recoveryCodeVerifier } = this.generateRecoveryCode(
-			this.userFacade.getUserGroupKey(undefined, this.entityClient),
+			await this.userFacade.getUserGroupKey(undefined, this.entityClient),
 		)
 		const recoverPasswordEntity = createRecoverCode()
 		recoverPasswordEntity.userEncRecoverCode = userEncRecoverCode

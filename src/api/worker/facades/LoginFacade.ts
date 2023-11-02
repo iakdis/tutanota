@@ -768,19 +768,18 @@ export class LoginFacade {
 	/**
 	 * Loads entropy from the last logout.
 	 */
-	private loadEntropy(): Promise<void> {
-		return this.entityClient.loadRoot(TutanotaPropertiesTypeRef, this.userFacade.getUserGroupId()).then((tutanotaProperties) => {
-			if (tutanotaProperties.groupEncEntropy) {
-				try {
-					let entropy = aesDecrypt(this.userFacade.getUserGroupKey(undefined, this.entityClient), neverNull(tutanotaProperties.groupEncEntropy))
-					random.addStaticEntropy(entropy)
-				} catch (error) {
-					if (error instanceof CryptoError) {
-						console.log("could not decrypt entropy", error)
-					}
+	private async loadEntropy(): Promise<void> {
+		const tutanotaProperties = await this.entityClient.loadRoot(TutanotaPropertiesTypeRef, this.userFacade.getUserGroupId())
+		if (tutanotaProperties.groupEncEntropy) {
+			try {
+				let entropy = aesDecrypt(await this.userFacade.getUserGroupKey(undefined, this.entityClient), neverNull(tutanotaProperties.groupEncEntropy))
+				random.addStaticEntropy(entropy)
+			} catch (error) {
+				if (error instanceof CryptoError) {
+					console.log("could not decrypt entropy", error)
 				}
 			}
-		})
+		}
 	}
 
 	async changePassword(currentPassword: string, newPassword: string, currentKdfType: KdfType, newKdfType: KdfType): Promise<void> {
@@ -790,7 +789,7 @@ export class LoginFacade {
 
 		const salt = generateRandomSalt()
 		const newUserPassphraseKey = await this.deriveUserPassphraseKey(newKdfType, newPassword, salt)
-		const pwEncUserGroupKey = encryptKey(newUserPassphraseKey, this.userFacade.getUserGroupKey(undefined, this.entityClient))
+		const pwEncUserGroupKey = encryptKey(newUserPassphraseKey, await this.userFacade.getUserGroupKey(undefined, this.entityClient))
 		const authVerifier = createAuthVerifier(newUserPassphraseKey)
 		const service = createChangePasswordData()
 

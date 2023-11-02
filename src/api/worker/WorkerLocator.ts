@@ -212,7 +212,7 @@ export async function initLocator(worker: WorkerImpl, browserData: BrowserData) 
 				// index new items in background
 				console.log("initIndexer after log in")
 
-				initIndexer(worker, cacheInfo)
+				initIndexer(worker, cacheInfo, locator.cachingEntityClient)
 			}
 
 			return mainInterface.loginListener.onFullLoginSuccess(sessionType, cacheInfo)
@@ -393,36 +393,35 @@ export async function initLocator(worker: WorkerImpl, browserData: BrowserData) 
 
 const RETRY_TIMOUT_AFTER_INIT_INDEXER_ERROR_MS = 30000
 
-function initIndexer(worker: WorkerImpl, cacheInfo: CacheInfo): Promise<void> {
-	return locator.indexer().then((indexer) => {
-		return indexer
-			.init({
-				user: assertNotNull(locator.user.getUser()),
-				userGroupKey: locator.user.getUserGroupKey(undefined, this.entityClient),
-				cacheInfo,
-			})
-			.catch(
-				ofClass(ServiceUnavailableError, () => {
-					console.log("Retry init indexer in 30 seconds after ServiceUnavailableError")
-					return delay(RETRY_TIMOUT_AFTER_INIT_INDEXER_ERROR_MS).then(() => {
-						console.log("_initIndexer after ServiceUnavailableError")
-						return initIndexer(worker, cacheInfo)
-					})
-				}),
-			)
-			.catch(
-				ofClass(ConnectionError, () => {
-					console.log("Retry init indexer in 30 seconds after ConnectionError")
-					return delay(RETRY_TIMOUT_AFTER_INIT_INDEXER_ERROR_MS).then(() => {
-						console.log("_initIndexer after ConnectionError")
-						return initIndexer(worker, cacheInfo)
-					})
-				}),
-			)
-			.catch((e) => {
-				worker.sendError(e)
-			})
-	})
+async function initIndexer(worker: WorkerImpl, cacheInfo: CacheInfo, entityClient: EntityClient): Promise<void> {
+	const indexer = await locator.indexer()
+	return indexer
+		.init({
+			user: assertNotNull(locator.user.getUser()),
+			userGroupKey: await locator.user.getUserGroupKey(undefined, entityClient),
+			cacheInfo,
+		})
+		.catch(
+			ofClass(ServiceUnavailableError, () => {
+				console.log("Retry init indexer in 30 seconds after ServiceUnavailableError")
+				return delay(RETRY_TIMOUT_AFTER_INIT_INDEXER_ERROR_MS).then(() => {
+					console.log("_initIndexer after ServiceUnavailableError")
+					return initIndexer(worker, cacheInfo, entityClient)
+				})
+			}),
+		)
+		.catch(
+			ofClass(ConnectionError, () => {
+				console.log("Retry init indexer in 30 seconds after ConnectionError")
+				return delay(RETRY_TIMOUT_AFTER_INIT_INDEXER_ERROR_MS).then(() => {
+					console.log("_initIndexer after ConnectionError")
+					return initIndexer(worker, cacheInfo, entityClient)
+				})
+			}),
+		)
+		.catch((e) => {
+			worker.sendError(e)
+		})
 }
 
 export async function resetLocator(): Promise<void> {

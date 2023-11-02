@@ -35,7 +35,7 @@ export class ShareFacade {
 		recipientMailAddresses: Array<string>,
 		shareCapability: ShareCapability,
 	): Promise<GroupInvitationPostReturn> {
-		const sharedGroupKey = this.userFacade.getGroupKey(sharedGroupInfo.group, undefined, this.entityClient)
+		const sharedGroupKey = await this.userFacade.getGroupKey(sharedGroupInfo.group, undefined, this.entityClient)
 		const userGroupInfo = await this.entityClient.load(GroupInfoTypeRef, this.userFacade.getLoggedInUser().userGroup.groupInfo)
 
 		const userGroupInfoSessionKey = await this.cryptoFacade.resolveSessionKeyForInstance(userGroupInfo)
@@ -78,7 +78,7 @@ export class ShareFacade {
 		const sharedGroupKey = uint8ArrayToBitArray(invitation.sharedGroupKey)
 		const serviceData = createGroupInvitationPutData({
 			receivedInvitation: invitation._id,
-			userGroupEncGroupKey: encryptKey(this.userFacade.getUserGroupKey(undefined, this.entityClient), sharedGroupKey),
+			userGroupEncGroupKey: encryptKey(await this.userFacade.getUserGroupKey(undefined, this.entityClient), sharedGroupKey),
 			sharedGroupEncInviteeGroupInfoKey: encryptKey(sharedGroupKey, neverNull(userGroupInfoSessionKey)),
 		})
 		await this.serviceExecutor.put(GroupInvitationService, serviceData)

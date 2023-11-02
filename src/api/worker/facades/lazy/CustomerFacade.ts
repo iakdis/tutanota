@@ -190,7 +190,7 @@ export class CustomerFacade {
 		} else {
 			// create properties
 			const sessionKey = aes128RandomKey()
-			const adminGroupKey = this.userFacade.getGroupKey(this.userFacade.getGroupId(GroupType.Admin), undefined, this.entityClient)
+			const adminGroupKey = await this.userFacade.getGroupKey(this.userFacade.getGroupId(GroupType.Admin), undefined, this.entityClient)
 
 			const groupEncSessionKey = encryptKey(adminGroupKey, sessionKey)
 			const data = createCreateCustomerServerPropertiesData({
@@ -364,7 +364,7 @@ export class CustomerFacade {
 			const membershipAddData = createMembershipAddData({
 				user: this.userFacade.getLoggedInUser()._id,
 				group: neverNull(keyData.premiumGroup),
-				symEncGKey: encryptKey(this.userFacade.getUserGroupKey(undefined, this.entityClient), uint8ArrayToBitArray(keyData.premiumGroupKey)),
+				symEncGKey: encryptKey(await this.userFacade.getUserGroupKey(undefined, this.entityClient), uint8ArrayToBitArray(keyData.premiumGroupKey)),
 			})
 			await this.serviceExecutor.post(MembershipService, membershipAddData)
 			const membershipRemoveData = createMembershipRemoveData({
@@ -385,7 +385,7 @@ export class CustomerFacade {
 			const membershipAddData = createMembershipAddData({
 				user: this.userFacade.getLoggedInUser()._id,
 				group: neverNull(keyData.freeGroup),
-				symEncGKey: encryptKey(this.userFacade.getUserGroupKey(undefined, this.entityClient), uint8ArrayToBitArray(keyData.freeGroupKey)),
+				symEncGKey: encryptKey(await this.userFacade.getUserGroupKey(undefined, this.entityClient), uint8ArrayToBitArray(keyData.freeGroupKey)),
 			})
 			await this.serviceExecutor.post(MembershipService, membershipAddData)
 			const membershipRemoveData = createMembershipRemoveData({

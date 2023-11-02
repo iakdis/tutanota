@@ -16,18 +16,7 @@ import { EntityClient } from "../../../common/EntityClient.js"
 import { assertWorkerOrNode } from "../../../common/Env.js"
 import { encryptString } from "../../crypto/CryptoFacade.js"
 import type { RsaImplementation } from "../../crypto/RsaImplementation.js"
-import {
-	aes128RandomKey,
-	decryptKey,
-	encryptKey,
-	encryptRsaKey,
-	rsaPublicKeyToHex,
-	RsaKeyPair,
-	Aes256Key,
-	Versioned,
-	BitArray,
-	Aes128Key,
-} from "@tutao/tutanota-crypto"
+import { Aes128Key, aes128RandomKey, Aes256Key, BitArray, decryptKey, encryptKey, encryptRsaKey, RsaKeyPair, rsaPublicKeyToHex } from "@tutao/tutanota-crypto"
 import { IServiceExecutor } from "../../../common/ServiceRequest.js"
 import {
 	CalendarService,
@@ -67,9 +56,9 @@ export class GroupManagementFacade {
 			adminGroupIds = this.user.getGroupIds(GroupType.LocalAdmin)
 		}
 
-		let adminGroupKey = this.user.getGroupKey(adminGroupIds[0], undefined, this.entityClient)
+		let adminGroupKey = await this.user.getGroupKey(adminGroupIds[0], undefined, this.entityClient)
 
-		let customerGroupKey = this.user.getGroupKey(this.user.getGroupId(GroupType.Customer), undefined, this.entityClient)
+		let customerGroupKey = await this.user.getGroupKey(this.user.getGroupId(GroupType.Customer), undefined, this.entityClient)
 
 		let mailGroupKey = aes128RandomKey()
 		let mailGroupInfoSessionKey = aes128RandomKey()
@@ -101,32 +90,31 @@ export class GroupManagementFacade {
 	 * @param userGroupKey user group key
 	 * @param name Name of the group
 	 */
-	generateUserAreaGroupData(name: string): Promise<UserAreaGroupData> {
-		return this.entityClient.load(GroupTypeRef, this.user.getUserGroupId()).then((userGroup) => {
-			const adminGroupId = neverNull(userGroup.admin) // user group has always admin group
+	async generateUserAreaGroupData(name: string): Promise<UserAreaGroupData> {
+		const userGroup = await this.entityClient.load(GroupTypeRef, this.user.getUserGroupId())
+		const adminGroupId = neverNull(userGroup.admin) // user group has always admin group
 
-			let adminGroupKey: BitArray | null = null
+		let adminGroupKey: BitArray | null = null
 
-			if (this.user.getAllGroupIds().indexOf(adminGroupId) !== -1) {
-				// getGroupKey throws an error if user is not member of that group - so check first
-				adminGroupKey = this.user.getGroupKey(adminGroupId, undefined, this.entityClient)
-			}
+		if (this.user.getAllGroupIds().indexOf(adminGroupId) !== -1) {
+			// getGroupKey throws an error if user is not member of that group - so check first
+			adminGroupKey = await this.user.getGroupKey(adminGroupId, undefined, this.entityClient)
+		}
 
-			const customerGroupKey = this.user.getGroupKey(this.user.getGroupId(GroupType.Customer), undefined, this.entityClient)
+		const customerGroupKey = await this.user.getGroupKey(this.user.getGroupId(GroupType.Customer), undefined, this.entityClient)
 
-			const userGroupKey = this.user.getUserGroupKey(undefined, this.entityClient)
+		const userGroupKey = await this.user.getUserGroupKey(undefined, this.entityClient)
 
-			const groupRootSessionKey = aes128RandomKey()
-			const groupInfoSessionKey = aes128RandomKey()
-			const groupKey = aes128RandomKey()
-			return createUserAreaGroupData({
-				groupEncGroupRootSessionKey: encryptKey(groupKey, groupRootSessionKey),
-				customerEncGroupInfoSessionKey: encryptKey(customerGroupKey, groupInfoSessionKey),
-				userEncGroupKey: encryptKey(userGroupKey, groupKey),
-				groupInfoEncName: encryptString(groupInfoSessionKey, name),
-				adminEncGroupKey: adminGroupKey ? encryptKey(adminGroupKey, groupKey) : null,
-				adminGroup: adminGroupId,
-			})
+		const groupRootSessionKey = aes128RandomKey()
+		const groupInfoSessionKey = aes128RandomKey()
+		const groupKey = aes128RandomKey()
+		return createUserAreaGroupData({
+			groupEncGroupRootSessionKey: encryptKey(groupKey, groupRootSessionKey),
+			customerEncGroupInfoSessionKey: encryptKey(customerGroupKey, groupInfoSessionKey),
+			userEncGroupKey: encryptKey(userGroupKey, groupKey),
+			groupInfoEncName: encryptString(groupInfoSessionKey, name),
+			adminEncGroupKey: adminGroupKey ? encryptKey(adminGroupKey, groupKey) : null,
+			adminGroup: adminGroupId,
 		})
 	}
 

@@ -42,9 +42,9 @@ export class ConfigurationDatabase {
 		userFacade: UserFacade,
 		dbLoadFn: (arg0: User, arg1: Aes128Key) => Promise<ConfigDb> = (user: User, userGroupKey: Aes128Key) => this.loadConfigDb(user, userGroupKey),
 	) {
-		this.db = new LazyLoaded(() => {
+		this.db = new LazyLoaded(async () => {
 			const user = assertNotNull(userFacade.getLoggedInUser())
-			const userGroupKey = userFacade.getUserGroupKey(undefined, this.entityClient)
+			const userGroupKey = await userFacade.getUserGroupKey(undefined, this.entityClient)
 			return dbLoadFn(user, userGroupKey)
 		})
 	}
