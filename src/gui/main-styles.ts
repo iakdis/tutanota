@@ -1224,7 +1224,7 @@ styles.registerStyle("main", () => {
 			opacity: "0.4",
 		},
 		".disabled": {
-			opacity: "0.3",
+			opacity: "0.7",
 		},
 		".translucent": {
 			opacity: "0.4",
