@@ -52,7 +52,7 @@ async function run({ platform }) {
 	console.log(`Bumped version ${currentVersionString} -> ${newVersionString}`)
 }
 
-async function readCurrentVersion() {
+export async function readCurrentVersion() {
 	return JSON.parse(await fs.promises.readFile("./package.json", { encoding: "utf8" })).version
 }
 
@@ -76,7 +76,7 @@ function readModelVersions() {
  * @param currentVersionString {string}
  * @return {number[]}
  */
-function parseCurrentVersion(currentVersionString) {
+export function parseCurrentVersion(currentVersionString) {
 	return currentVersionString.split(".").map((n) => parseInt(n, 10))
 }
 
@@ -138,7 +138,7 @@ async function bumpAndroidVersion(currentVersion, newVersionString) {
  * @param currentVersion {number[]}
  * @return {number[]}
  */
-function makeNewVersion(currentVersion) {
+export function makeNewVersion(currentVersion) {
 	const modelVersions = readModelVersions()
 	const majorVersion = modelVersions.reduce((sum, current) => sum + current, 0)
 
