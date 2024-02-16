@@ -59,12 +59,13 @@ import { CalendarEventTimes, cleanMailAddress, isAllDayEvent } from "../../api/c
 import { CalendarEvent, UserSettingsGroupRoot } from "../../api/entities/tutanota/TypeRefs.js"
 import { ProgrammingError } from "../../api/common/error/ProgrammingError.js"
 import { size } from "../../gui/size.js"
-import { isColorLight } from "../../gui/base/Color.js"
+import { isColorLight, isValidColorCode } from "../../gui/base/Color.js"
 import { GroupColors } from "../view/CalendarView.js"
 import { CalendarInfo } from "../model/CalendarModel.js"
 import { User } from "../../api/entities/sys/TypeRefs.js"
 import { EventType } from "./eventeditor-model/CalendarEventModel.js"
 import { hasCapabilityOnGroup } from "../../sharing/GroupUtils.js"
+import { blue } from "../../gui/builtinThemes.js"
 
 export function renderCalendarSwitchLeftButton(label: TranslationKey, click: () => unknown): Child {
 	return m(IconButton, {
@@ -726,8 +727,11 @@ export const iconForAttendeeStatus: Record<CalendarAttendeeStatus, AllIcons> = O
 	[CalendarAttendeeStatus.ADDED]: Icons.CircleEmpty,
 })
 export const getGroupColors = memoized((userSettingsGroupRoot: UserSettingsGroupRoot) => {
-	return userSettingsGroupRoot.groupSettings.reduce((acc, gc) => {
-		acc.set(gc.group, gc.color)
+	return userSettingsGroupRoot.groupSettings.reduce((acc, { group, color }) => {
+		if (!isValidColorCode(color)) {
+			color = blue
+		}
+		acc.set(group, color)
 		return acc
 	}, new Map())
 })

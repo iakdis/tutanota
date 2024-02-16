@@ -20,7 +20,7 @@ const grey = "#868686"
 const grey_darker_0 = "#707070"
 const grey_darker_1 = "#303030"
 const red = "#840010"
-const blue = "#005885"
+export const blue = "#005885"
 export const logo_text_dark_grey = "#4a4a4a"
 
 /**
